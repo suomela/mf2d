@@ -1,2 +1,3 @@
 Import('env')
 env.Program('mf2d', ['mf2d.cc', 'driver.cc', 'filter.cc', 'imageio.cc'])
+env.Program('mf2d-benchmark', ['mf2d-benchmark.cc', 'driver.cc', 'filter.cc', 'imageio.cc'])

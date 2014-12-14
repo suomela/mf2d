@@ -16,7 +16,7 @@ struct Image {
     }
 
     inline void alloc() {
-        p = new T[x * y];
+        p = new T[size()];
     }
 };
 
@@ -32,6 +32,7 @@ struct Settings {
 class VDriver {
 public:
     virtual void process() = 0;
+    virtual void benchmark() = 0;
     virtual ~VDriver() {}
 };
 
@@ -53,6 +54,7 @@ public:
     }
 
     void process();
+    void benchmark();
 
 private:
     const Settings settings;

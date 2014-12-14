@@ -6,8 +6,8 @@ def build(dir, **d):
     SConscript('src/SConscript', variant_dir=dir, exports='env')
 
 linkcommon='-lcfitsio'
-gccdiag='-fdiagnostics-color=auto -Werror -Wall -Wextra -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wdouble-promotion -Wconversion -Wsign-conversion -Wmissing-declarations -Wredundant-decls -Wno-unused-parameter'
-clangdiag='-Weverything -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-weak-template-vtables -Wno-weak-vtables -Wno-source-uses-openmp -Wno-unused-parameter'
+gccdiag='-fdiagnostics-color=auto -Werror -Wall -Wextra -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wdouble-promotion -Wconversion -Wsign-conversion -Wmissing-declarations -Wredundant-decls -Wno-unused-parameter -Wno-float-equal'
+clangdiag='-Weverything -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-weak-template-vtables -Wno-weak-vtables -Wno-source-uses-openmp -Wno-unused-parameter -Wno-float-equal'
 gccopt='-march=native -O3 -Wa,-q'
 clangopt='-march=native -O3'
 gcclink=linkcommon + ' -fopenmp'

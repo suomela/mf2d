@@ -2,15 +2,11 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <x86intrin.h>
 #include "param.h"
-
-// Block
-
-constexpr int BB {B * B};
-constexpr int BB64 {BB / 64};
 
 // Bit manipulation
 
@@ -44,7 +40,11 @@ inline int findnth64(uint64_t x, int n) {
 
 // Data structure for the sliding within a B*B block.
 
+template <int B>
 struct Window {
+    constexpr static int BB {B * B};
+    constexpr static int BB64 {BB / 64};
+
     // A vector with B*B bits that keeps track of the contents of the
     // sliding window. The elements of the block are sorted and
     // numbered with integers [0,B*B). Bit number s is on iff element
@@ -128,6 +128,7 @@ struct Window {
 
 // Grid dimensions.
 
+template <int B>
 struct Dim {
     Dim(int size_, int h_)
         : size{size_},
@@ -165,8 +166,9 @@ private:
 
 // Slot i in the grid.
 
+template <int B>
 struct BDim {
-    BDim(Dim dim_) : dim{dim_} {
+    BDim(Dim<B> dim_) : dim{dim_} {
         set(0);
     }
 
@@ -203,7 +205,7 @@ struct BDim {
     // Within the block, median is needed for coordinates [b0, b1).
     // 0 <= start < end < dim.size
     // 0 <= b0 < b1 < size <= B
-    const Dim dim;
+    const Dim<B> dim;
     int start;
     int size;
     int b0;
@@ -213,10 +215,10 @@ struct BDim {
 
 // MedCalc.run(i,j) calculates medians for block (i,j).
 
-template <typename T>
+template <typename T, int B>
 class MedCalc {
 public:
-    MedCalc(Dim dimx_, Dim dimy_, const T* in_, T* out_)
+    MedCalc(Dim<B> dimx_, Dim<B> dimy_, const T* in_, T* out_)
         : bx{dimx_}, by{dimy_}, in{in_}, out{out_}
     {}
 
@@ -351,28 +353,27 @@ private:
         out[imgy * bx.dim.size + imgx] = value;
     }
 
+    constexpr static int BB {Window<B>::BB};
     std::pair<T, int> sorted[BB];
     int rank[BB];
-    Window window;
-    BDim bx;
-    BDim by;
+    Window<B> window;
+    BDim<B> bx;
+    BDim<B> by;
     const T* const in;
     T* const out;
 };
 
 
-// Entry point for median calculation.
-
-template <typename T>
-void median_filter(int x, int y, int hx, int hy, const T* in, T* out) {
+template <typename T, int B>
+void median_filter_impl(int x, int y, int hx, int hy, const T* in, T* out) {
     if (2 * hx + 1 > B || 2 * hy + 1 > B) {
-        throw std::invalid_argument("window too large");
+        throw std::invalid_argument("window too large for this block size");
     }
-    Dim dimx(x, hx);
-    Dim dimy(y, hy);
+    Dim<B> dimx(x, hx);
+    Dim<B> dimy(y, hy);
     #pragma omp parallel
     {
-        MedCalc<T>* mc = new MedCalc<T>(dimx, dimy, in, out);
+        MedCalc<T,B>* mc = new MedCalc<T,B>(dimx, dimy, in, out);
         #pragma omp for collapse(2)
         for (int by = 0; by < dimy.count; ++by) {
             for (int bx = 0; bx < dimx.count; ++bx) {
@@ -384,6 +385,34 @@ void median_filter(int x, int y, int hx, int hy, const T* in, T* out) {
 }
 
 
-template void median_filter<float>(int x, int y, int hx, int hy, const float* in, float* out);
-template void median_filter<double>(int x, int y, int hx, int hy, const double* in, double* out);
+template <typename T>
+void median_filter(int x, int y, int hx, int hy, int blockhint, const T* in, T* out) {
+    int h {std::max(hx, hy)};
+    if (h > MAX_H) {
+        throw std::invalid_argument("window too large");
+    }
+    int blocksize {blockhint ? blockhint : choose_blocksize(h)};
+    switch (blocksize) {
+    case 64:
+        median_filter_impl<T,64>(x, y, hx, hy, in, out);
+        break;
+    case 128:
+        median_filter_impl<T,128>(x, y, hx, hy, in, out);
+        break;
+    case 256:
+        median_filter_impl<T,256>(x, y, hx, hy, in, out);
+        break;
+    case 512:
+        median_filter_impl<T,512>(x, y, hx, hy, in, out);
+        break;
+    default:
+        throw std::invalid_argument("unsupported block size");
+    }
+}
+
+template void median_filter<float>(int x, int y, int hx, int hy, int blockhint, const float* in, float* out);
+template void median_filter<double>(int x, int y, int hx, int hy, int blockhint, const double* in, double* out);
+
+template <typename T>
+void median_filter(int x, int y, int hx, int hy, const T* in, T* out);
 

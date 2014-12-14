@@ -3,11 +3,15 @@
 
 constexpr int MAX_H {50};
 
-#define BLOCK_SIZES 64,128,256,512
+#define BLOCK_SIZES 16,32,64,128,256,512
 
 inline int choose_blocksize(int h) {
     // Reasonable values based on benchmarks
-    if (h < 12) {
+    if (h < 3) {
+        return 16;
+    } else if (h < 5) {
+        return 32;
+    } else if (h < 12) {
         return 64;
     } else if (h < 25) {
         return 128;

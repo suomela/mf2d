@@ -393,6 +393,12 @@ void median_filter(int x, int y, int hx, int hy, int blockhint, const T* in, T* 
     }
     int blocksize {blockhint ? blockhint : choose_blocksize(h)};
     switch (blocksize) {
+    case 16:
+        median_filter_impl<T,16>(x, y, hx, hy, in, out);
+        break;
+    case 32:
+        median_filter_impl<T,32>(x, y, hx, hy, in, out);
+        break;
     case 64:
         median_filter_impl<T,64>(x, y, hx, hy, in, out);
         break;

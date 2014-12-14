@@ -1,0 +1,8 @@
+#!/bin/bash
+
+rm -rf tmp
+mkdir -p tmp || exit 1
+for a in build build-debug build-clang; do
+    echo $a
+    test/check-one.sh $a || exit 1
+done

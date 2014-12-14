@@ -1,3 +1,3 @@
 #!/bin/bash
 
-exec test/test-any.sh build build-clang
+exec test/test-any.sh bin

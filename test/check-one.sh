@@ -2,6 +2,11 @@
 
 time test/run-one.sh "$1" || exit 1
 echo
-md5 tmp/*.fits > "tmp/checksum-$1" || exit 1
-cmp "test/checksum" "tmp/checksum-$1" || exit 1
+if [ "$(uname)" == "Darwin" ]; then
+    md5 tmp/*.fits > "tmp/checksum-$1" || exit 1
+    cmp "test/checksum-md5" "tmp/checksum-$1" || exit 1
+else
+    md5sum tmp/*.fits > "tmp/checksum-$1" || exit 1
+    cmp "test/checksum-md5sum" "tmp/checksum-$1" || exit 1
+fi
 

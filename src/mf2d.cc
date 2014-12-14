@@ -19,11 +19,11 @@ static int parse_int(const char *s, int min, int max, const char *descr) {
 
 int main(int argc, const char** argv) {
     if (argc != 5) {
-        std::cerr << "usage: " << argv[0] << " half-window input output-median output-difference" << std::endl;
+        std::cerr << "usage: " << argv[0] << " radius input output-median output-difference" << std::endl;
         std::exit(EXIT_FAILURE);
     }
     Settings settings;
-    settings.h = parse_int(argv[1], 0, MAX_H, "half-window");
+    settings.h = parse_int(argv[1], 0, MAX_H, "radius");
     settings.source = argv[2];
     settings.target_med = argv[3];
     settings.target_diff = argv[4];

@@ -1,0 +1,2 @@
+Import('env')
+env.Program('mf2d', ['mf2d.cc', 'driver.cc', 'filter.cc', 'imageio.cc'])

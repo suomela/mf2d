@@ -25,6 +25,12 @@ build('build-debug',
     CXXFLAGS=gcccommon + ' -g ' + gccsanity,
     LINKFLAGS=gcclink + ' ' + gccsanity,
 )
+build('build-naive',
+    CXX='g++-4.9',
+    CXXFLAGS=gcccommon,
+    CPPDEFINES=['NAIVE'],
+    LINKFLAGS=gcclink,
+)
 build('build-clang',
     CXX='clang++',
     CXXFLAGS=clangcommon,

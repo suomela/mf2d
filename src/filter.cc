@@ -225,7 +225,11 @@ public:
         bx.set(bx_);
         by.set(by_);
         calc_rank();
+#ifdef NAIVE
+        medians_naive();
+#else
         medians();
+#endif
     }
 
 private:

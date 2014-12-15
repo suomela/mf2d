@@ -32,7 +32,7 @@ All file names are given in a format supported by the cfitsio
 library. In particular, prefix the output file names with an
 exclamation mark if you want to overwrite existing files:
 
-  bin/mf2d 15 example/test-1.fits '!a.fits' '!b.fits'
+    bin/mf2d 15 example/test-1.fits '!a.fits' '!b.fits'
 
 
 Performance

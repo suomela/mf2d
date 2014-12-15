@@ -90,7 +90,7 @@ Test:
     test/test.sh
 
 
-### OS X 10.10 and Clang
+### OS X 10.10 and clang
 
 (Not recommended: slow, will not use OpenMP.)
 
@@ -133,6 +133,33 @@ one of the following commands to compile:
 Test:
 
     test/test.sh
+
+
+### Linux and ICC 14.0 or later
+
+As above, but use the following command to compile:
+
+    compile/icc-linux.sh
+
+
+Platforms and versions
+----------------------
+
+Tested on the following platforms:
+
+  - OS X 10.10
+  - Ubuntu 12.04
+  - Ubuntu 14.04
+
+With e.g. the following compilers:
+
+  - GCC 4.7, 4.8, 4.9
+  - ICC 14.0, 15.0
+  - Apple LLVM version 6.0
+
+Using the following libraries:
+
+  - cfitsio 3.370
 
 
 License

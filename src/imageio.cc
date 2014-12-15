@@ -7,15 +7,15 @@
 #include "imageio.h"
 
 
-template <typename T> const char* get_type_descr();
+template <typename T> constexpr const char* get_type_descr();
 template <> constexpr const char* get_type_descr<float>() { return "32-bit floats"; }
 template <> constexpr const char* get_type_descr<double>() { return "64-bit floats"; }
 
-template <typename T> int get_fits_type();
+template <typename T> constexpr int get_fits_type();
 template <> constexpr int get_fits_type<float>() { return TFLOAT; }
 template <> constexpr int get_fits_type<double>() { return TDOUBLE; }
 
-template <typename T> int get_fits_bitpix();
+template <typename T> constexpr int get_fits_bitpix();
 template <> constexpr int get_fits_bitpix<float>() { return FLOAT_IMG; }
 template <> constexpr int get_fits_bitpix<double>() { return DOUBLE_IMG; }
 

@@ -1,7 +1,8 @@
 #!/bin/bash -l
+#SBATCH --array=1-100
 #SBATCH -J mf2d-benchmark
-#SBATCH -o tmp/mf2d-benchmark-out.txt
-#SBATCH -e tmp/mf2d-benchmark-err.txt
+#SBATCH -o tmp/mf2d-benchmark-out-%a.txt
+#SBATCH -e tmp/mf2d-benchmark-err-%a.txt
 #SBATCH -t 00:15:00
 #SBATCH -p serial
 #SBATCH -n 1

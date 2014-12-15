@@ -1,7 +1,7 @@
 #ifndef PARAM_H
 #define PARAM_H
 
-constexpr int MAX_H {50};
+constexpr int MAX_H {100};
 
 #define BLOCK_SIZES 16,32,64,128,256,512
 
@@ -15,8 +15,10 @@ inline int choose_blocksize(int h) {
         return 64;
     } else if (h < 25) {
         return 128;
-    } else {
+    } else if (h < 50) {
         return 256;
+    } else {
+        return 512;
     }
 }
 

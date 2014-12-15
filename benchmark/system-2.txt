@@ -1,0 +1,5 @@
+  - HP SL230s G8
+  - 2.6 GHz Intel E5-2670 (Sandy Bridge)
+  - 2 x 8 cores, 32 threads
+  - Linux, CentOS 6
+  - ICC 15.0.0

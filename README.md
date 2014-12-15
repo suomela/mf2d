@@ -75,7 +75,7 @@ size is 101x101).
 Compiling
 ---------
 
-### OS X 10.10 and GCC 4.9.2
+### OS X 10.10 and GCC 4.9
 
 If needed, install gcc and cfitsio from Homebrew:
 
@@ -107,7 +107,14 @@ Test:
     test/test.sh
 
 
-### Ubuntu Linux 12.04 and GCC 4.7.3
+### Linux and GCC 4.7 or later
+
+Make sure you have got GCC version 4.7 or later, e.g.:
+
+    g++ --version
+    g++-4.7 --version
+    g++-4.8 --version
+    g++-4.9 --version
 
 If needed, install cfitsio. If installed in a non-standard
 location, set the paths accordingly, e.g.:
@@ -115,26 +122,13 @@ location, set the paths accordingly, e.g.:
     export CPATH=$HOME/opt/include
     export LIBRARY_PATH=$HOME/opt/lib
 
-Compile:
+Depending on the name of your preferred C++ compiler, use
+one of the following commands to compile:
 
+    compile/gcc-linux.sh
     compile/gcc-47-linux.sh
-
-Test:
-
-    test/test.sh
-
-
-### Ubuntu Linux 14.04 and GCC 4.8.2
-
-If needed, install cfitsio. If installed in a non-standard
-location, set the paths accordingly, e.g.:
-
-    export CPATH=$HOME/opt/include
-    export LIBRARY_PATH=$HOME/opt/lib
-
-Compile:
-
     compile/gcc-48-linux.sh
+    compile/gcc-49-linux.sh
 
 Test:
 

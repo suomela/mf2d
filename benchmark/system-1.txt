@@ -1,0 +1,6 @@
+  - Macbook Air 13" Mid 2013
+  - 1.7 GHz Intel Core i7 (Haswell)
+  - 2 cores, 4 threads
+  - OS X 10.10.1
+  - GCC 4.9.2
+ 

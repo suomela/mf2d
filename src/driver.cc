@@ -23,7 +23,7 @@ void Driver<T>::benchmark() {
         std::cout << h << std::flush;
         T* prev = 0;
         for (int block : {BLOCK_SIZES}) {
-            if (block < 3*h+1) {
+            if (block < 2.5*h+1) {
                 std::cout << "\t-" << std::flush;
             } else {
                 Timer timer;

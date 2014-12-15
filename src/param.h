@@ -11,14 +11,12 @@ inline int choose_blocksize(int h) {
         return 16;
     } else if (h < 5) {
         return 32;
-    } else if (h < 12) {
+    } else if (h < 13) {
         return 64;
-    } else if (h < 25) {
+    } else if (h < 34) {
         return 128;
-    } else if (h < 50) {
-        return 256;
     } else {
-        return 512;
+        return 256;
     }
 }
 

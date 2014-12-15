@@ -54,10 +54,10 @@ Detailed information available in directory "benchmark".
 Running time (block size B = 256):
 
   - r =  20:  0.24 s
-  - r =  40:  0.38 s
-  - r =  60:  0.54 s
-  - r =  80:  0.69 s
-  - r = 100:  1.05 s
+  - r =  40:  0.37 s
+  - r =  60:  0.53 s
+  - r =  80:  0.68 s
+  - r = 100:  1.04 s
 
 
 ### High-end server
@@ -68,9 +68,9 @@ Running time (block size B = 256):
 
   - r =  20:  0.07 s
   - r =  40:  0.12 s
-  - r =  60:  0.14 s
+  - r =  60:  0.15 s
   - r =  80:  0.17 s
-  - r = 100:  0.27 s
+  - r = 100:  0.28 s
 
 
 Details

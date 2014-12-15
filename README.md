@@ -38,21 +38,39 @@ exclamation mark if you want to overwrite existing files:
 Performance
 -----------
 
-Test platform:
-
-  - Macbook Air 13" Mid 2013
-  - 1.7 GHz Intel Core i7 (Haswell)
-  - 2 cores, 4 threads
-  - OS X 10.10.1
-  - GCC 4.9.2
-
 Test data:
 
   - example/test-1.fits
   - 1024x1024 pixels, 32-bit floats
-  - radius = 15 (i.e., 31x31 window)
+  - radius = 0, 1, ..., 100
 
-Total running time: 0.24 s.
+Detailed information available in directory "benchmark".
+
+
+### Low-end laptop
+
+1.7 GHz Intel Haswell, 2 cores, 4 threads.
+
+Running time (block size B = 256):
+
+  - r =  20:  0.24 s
+  - r =  40:  0.38 s
+  - r =  60:  0.54 s
+  - r =  80:  0.69 s
+  - r = 100:  1.05 s
+
+
+### High-end server
+
+2.6 GHz Intel Sandy Bridge, 2 x 8 cores, 32 threads.
+
+Running time (block size B = 256):
+
+  - r =  20:  0.07 s
+  - r =  40:  0.12 s
+  - r =  60:  0.14 s
+  - r =  80:  0.17 s
+  - r = 100:  0.27 s
 
 
 Details
@@ -68,8 +86,8 @@ of pixels, and hence the median is unique. Near the boundaries
 we may have an even number of pixels in the window; in those
 cases we will output the average of the two middle values.
 
-The maximum radius is currently 50 (i.e., the maximum window
-size is 101x101).
+The maximum radius is currently 100 (i.e., the maximum window
+size is 201x201).
 
 
 Compiling

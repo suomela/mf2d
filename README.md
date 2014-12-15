@@ -122,6 +122,23 @@ Test:
     test/test.sh
 
 
+### Ubuntu Linux 14.04 and GCC 4.8.2
+
+If needed, install cfitsio. If installed in a non-standard
+location, set the paths accordingly, e.g.:
+
+    export CPATH=$HOME/opt/include
+    export LIBRARY_PATH=$HOME/opt/lib
+
+Compile:
+
+    compile/gcc-48-linux.sh
+
+Test:
+
+    test/test.sh
+
+
 License
 -------
 

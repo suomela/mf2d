@@ -127,6 +127,20 @@ Test:
 
 ### Linux and GCC 4.7 or later
 
+Install cfitsio first. You can download the source from
+http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html
+and compile and install it e.g. as follows:
+
+    ./configure --prefix=$HOME/opt
+    make
+    make install
+
+Then set the paths accordingly to that the compiler and linker
+can find it, e.g.:
+
+    export CPATH=$HOME/opt/include
+    export LIBRARY_PATH=$HOME/opt/lib
+
 Make sure you have got GCC version 4.7 or later, e.g.:
 
     g++ --version
@@ -134,14 +148,8 @@ Make sure you have got GCC version 4.7 or later, e.g.:
     g++-4.8 --version
     g++-4.9 --version
 
-If needed, install cfitsio. If installed in a non-standard
-location, set the paths accordingly, e.g.:
-
-    export CPATH=$HOME/opt/include
-    export LIBRARY_PATH=$HOME/opt/lib
-
 Depending on the name of your preferred C++ compiler, use
-one of the following commands to compile:
+one of the following commands to compile mf2d:
 
     compile/gcc-linux.sh
     compile/gcc-47-linux.sh

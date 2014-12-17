@@ -40,7 +40,7 @@ inline int findnth64(uint64_t x, int n) {
 }
 
 
-// Data structure for the sliding within a B*B block.
+// Data structure for the sliding window within a B*B block.
 
 template <int B>
 struct Window {

@@ -14,6 +14,8 @@ constexpr int MASK64 { 64-1 };
 constexpr int SHIFT64 { 6 };
 constexpr uint64_t ONE64 { 1 };
 
+static_assert((ONE64 << SHIFT64) == (MASK64 + 1), "sane bit masks");
+
 
 // Find nth bit that is set and return its index
 // (64 = no such bit)
@@ -45,21 +47,6 @@ struct Window {
     constexpr static int BB {B * B};
     constexpr static int BB64 {BB / 64};
 
-    // A vector with B*B bits that keeps track of the contents of the
-    // sliding window. The elements of the block are sorted and
-    // numbered with integers [0,B*B). Bit number s is on iff element
-    // s is inside the window.
-    uint64_t buf[BB64];
-    // count[i] = popcount(buf[i])
-    int count[BB64];
-    // The current guess is that the median is in buf[p].
-    // The guess is corrected by calling "fix".
-    int p;
-    // small = count[0] + ... + count[p-1]
-    int small;
-    // large = count[p] + ... + count[BB64-1]
-    int large;
-
     inline void clear()
     {
         for (int i {0}; i < BB64; ++i) {
@@ -71,29 +58,21 @@ struct Window {
         large = 0;
     }
 
-    inline void add(int s) {
+    inline void update(int op, int s) {
+        assert(op == -1 || op == +1);
         int i { s >> SHIFT64 };
         int j { s & MASK64 };
-        assert(!(buf[i] & (ONE64 << j)));
-        buf[i] |= (ONE64 << j);
-        ++count[i];
-        if (i < p) {
-            ++small;
+        if (op == +1) {
+            assert(!(buf[i] & (ONE64 << j)));
         } else {
-            ++large;
+            assert(buf[i] & (ONE64 << j));
         }
-    }
-
-    inline void del(int s) {
-        int i { s >> SHIFT64 };
-        int j { s & MASK64 };
-        assert(buf[i] & (ONE64 << j));
-        buf[i] &= ~(ONE64 << j);
-        --count[i];
+        buf[i] ^= (ONE64 << j);
+        count[i] += op;
         if (i < p) {
-            --small;
+            small += op;
         } else {
-            --large;
+            large += op;
         }
     }
 
@@ -123,6 +102,22 @@ struct Window {
         assert(j < 64);
         return (p << SHIFT64) | j;
     }
+
+private:
+    // A vector with B*B bits that keeps track of the contents of the
+    // sliding window. The elements of the block are sorted and
+    // numbered with integers [0,B*B). Bit number s is on iff element
+    // s is inside the window.
+    uint64_t buf[BB64];
+    // count[i] = popcount(buf[i])
+    int count[BB64];
+    // The current guess is that the median is in buf[p].
+    // The guess is corrected by calling "fix".
+    int p;
+    // small = count[0] + ... + count[p-1]
+    int small;
+    // large = count[p] + ... + count[BB64-1]
+    int large;
 };
 
 
@@ -189,13 +184,13 @@ struct BDim {
 
     // The window around point v is [w0(v), w1(v)).
     // 0 <= w0(v) <= v < w1(v) <= size
-    inline int w0(int v) {
+    inline int w0(int v) const {
         assert(b0 <= v);
         assert(v < b1);
         return std::max(0, v - dim.h);
     }
 
-    inline int w1(int v) {
+    inline int w1(int v) const {
         assert(b0 <= v);
         assert(v < b1);
         return std::min(v + 1 + dim.h, size);
@@ -215,7 +210,7 @@ struct BDim {
 
 // MedCalc.run(i,j) calculates medians for block (i,j).
 
-template <typename T, int B>
+template <typename T, typename R, int B>
 class MedCalc {
 public:
     MedCalc(Dim<B> dimx_, Dim<B> dimy_, const T* in_, T* out_)
@@ -226,6 +221,7 @@ public:
     {
         bx.set(bx_);
         by.set(by_);
+        bxy_size = by.size * bx.size;
         calc_rank();
 #ifdef NAIVE
         medians_naive();
@@ -238,12 +234,12 @@ private:
     void calc_rank() {
         for (int y {0}; y < by.size; ++y) {
             for (int x {0}; x < bx.size; ++x) {
-                sorted[y * bx.size + x] = std::make_pair(get_pixel(x, y), y * B + x);
+                sorted[pack(x, y)] = std::make_pair(get_pixel(x, y), pack(x, y));
             }
         }
-        std::sort(sorted, sorted + by.size * bx.size);
-        for (int i {0}; i < by.size * bx.size; ++i) {
-            rank[sorted[i].second] = i;
+        std::sort(sorted, sorted + bxy_size);
+        for (int i {0}; i < bxy_size; ++i) {
+            rank[sorted[i].second] = static_cast<R>(i);
         }
     }
 
@@ -252,7 +248,7 @@ private:
         for (int y {by.b0}; y < by.b1; ++y) {
             for (int x {bx.b0}; x < bx.b1; ++x) {
                 window.clear();
-                add_block(bx.w0(x), bx.w1(x), by.w0(y), by.w1(y));
+                update_block(+1, bx.w0(x), bx.w1(x), by.w0(y), by.w1(y));
                 set_med(x, y);
             }
         }
@@ -262,7 +258,7 @@ private:
         window.clear();
         int x {bx.b0};
         int y {by.b0};
-        add_block(bx.w0(x), bx.w1(x), by.w0(y), by.w1(y));
+        update_block(+1, bx.w0(x), bx.w1(x), by.w0(y), by.w1(y));
         set_med(x, y);
         bool down {true};
         while (true) {
@@ -284,44 +280,28 @@ private:
                 }
             }
             if (right) {
-                del_block(bx.w0(x), bx.w0(x+1), by.w0(y), by.w1(y));
+                update_block(-1, bx.w0(x), bx.w0(x+1), by.w0(y), by.w1(y));
                 ++x;
-                add_block(bx.w1(x-1), bx.w1(x), by.w0(y), by.w1(y));
+                update_block(+1, bx.w1(x-1), bx.w1(x), by.w0(y), by.w1(y));
             } else if (down) {
-                del_block(bx.w0(x), bx.w1(x), by.w0(y), by.w0(y+1));
+                update_block(-1, bx.w0(x), bx.w1(x), by.w0(y), by.w0(y+1));
                 ++y;
-                add_block(bx.w0(x), bx.w1(x), by.w1(y-1), by.w1(y));
+                update_block(+1, bx.w0(x), bx.w1(x), by.w1(y-1), by.w1(y));
             } else {
-                del_block(bx.w0(x), bx.w1(x), by.w1(y-1), by.w1(y));
+                update_block(-1, bx.w0(x), bx.w1(x), by.w1(y-1), by.w1(y));
                 --y;
-                add_block(bx.w0(x), bx.w1(x), by.w0(y), by.w0(y+1));
+                update_block(+1, bx.w0(x), bx.w1(x), by.w0(y), by.w0(y+1));
             }
             set_med(x, y);
         }
     }
 
-    inline void add_block(int x0, int x1, int y0, int y1) {
+    inline void update_block(int op, int x0, int x1, int y0, int y1) {
         for (int y {y0}; y < y1; ++y) {
             for (int x {x0}; x < x1; ++x) {
-                add(x, y);
+                window.update(op, rank[pack(x, y)]);
             }
         }
-    }
-
-    inline void del_block(int x0, int x1, int y0, int y1) {
-        for (int y {y0}; y < y1; ++y) {
-            for (int x {x0}; x < x1; ++x) {
-                del(x, y);
-            }
-        }
-    }
-
-    inline void add(int x, int y) {
-        window.add(rank[y * B + x]);
-    }
-
-    inline void del(int x, int y) {
-        window.del(rank[y * B + x]);
     }
 
     inline void set_med(int x, int y) {
@@ -329,11 +309,11 @@ private:
         int med1 {window.med()};
         T value {sorted[med1].first};
         if (window.even()) {
-            window.del(med1);
+            window.update(-1, med1);
             window.fix();
             assert(!window.even());
             int med2 {window.med()};
-            window.add(med1);
+            window.update(+1, med1);
             assert(med2 > med1);
             value += sorted[med2].first;
             value /= 2;
@@ -341,30 +321,37 @@ private:
         set_pixel(x, y, value);
     }
 
+    inline R pack(int x, int y) const {
+        return static_cast<R>(y * bx.size + x);
+    }
+
+    inline int coord(int x, int y) const {
+        return (y + by.start) * bx.dim.size + (x + bx.start);
+    }
+
     inline T get_pixel(int x, int y) const {
-        int imgy {y + by.start};
-        int imgx {x + bx.start};
-        return in[imgy * bx.dim.size + imgx];
+        return in[coord(x, y)];
     }
 
     inline void set_pixel(int x, int y, T value) {
-        int imgy {y + by.start};
-        int imgx {x + bx.start};
-        out[imgy * bx.dim.size + imgx] = value;
+        out[coord(x, y)] = value;
     }
 
     constexpr static int BB {Window<B>::BB};
-    std::pair<T, int> sorted[BB];
-    int rank[BB];
+    std::pair<T,R> sorted[BB];
+    R rank[BB];
     Window<B> window;
     BDim<B> bx;
     BDim<B> by;
+    int bxy_size;
     const T* const in;
     T* const out;
+
+    static_assert(std::numeric_limits<R>::max() >= BB-1, "rank type large enough");
 };
 
 
-template <typename T, int B>
+template <typename T, typename R, int B>
 void median_filter_impl(int x, int y, int hx, int hy, const T* in, T* out) {
     if (2 * hx + 1 > B || 2 * hy + 1 > B) {
         throw std::invalid_argument("window too large for this block size");
@@ -373,7 +360,7 @@ void median_filter_impl(int x, int y, int hx, int hy, const T* in, T* out) {
     Dim<B> dimy(y, hy);
     #pragma omp parallel
     {
-        MedCalc<T,B>* mc = new MedCalc<T,B>(dimx, dimy, in, out);
+        MedCalc<T,R,B>* mc = new MedCalc<T,R,B>(dimx, dimy, in, out);
         #pragma omp for collapse(2)
         for (int by = 0; by < dimy.count; ++by) {
             for (int bx = 0; bx < dimx.count; ++bx) {
@@ -394,22 +381,22 @@ void median_filter(int x, int y, int hx, int hy, int blockhint, const T* in, T* 
     int blocksize {blockhint ? blockhint : choose_blocksize(h)};
     switch (blocksize) {
     case 16:
-        median_filter_impl<T,16>(x, y, hx, hy, in, out);
+        median_filter_impl<T,uint8_t,16>(x, y, hx, hy, in, out);
         break;
     case 32:
-        median_filter_impl<T,32>(x, y, hx, hy, in, out);
+        median_filter_impl<T,uint16_t,32>(x, y, hx, hy, in, out);
         break;
     case 64:
-        median_filter_impl<T,64>(x, y, hx, hy, in, out);
+        median_filter_impl<T,uint16_t,64>(x, y, hx, hy, in, out);
         break;
     case 128:
-        median_filter_impl<T,128>(x, y, hx, hy, in, out);
+        median_filter_impl<T,uint16_t,128>(x, y, hx, hy, in, out);
         break;
     case 256:
-        median_filter_impl<T,256>(x, y, hx, hy, in, out);
+        median_filter_impl<T,uint16_t,256>(x, y, hx, hy, in, out);
         break;
     case 512:
-        median_filter_impl<T,512>(x, y, hx, hy, in, out);
+        median_filter_impl<T,int,512>(x, y, hx, hy, in, out);
         break;
     default:
         throw std::invalid_argument("unsupported block size");

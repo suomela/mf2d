@@ -93,9 +93,44 @@ size is 201x201).
 Compiling
 ---------
 
-### OS X 10.10 and GCC 4.9
+### Linux and GCC
 
-If needed, install gcc and cfitsio from Homebrew:
+Install cfitsio first. You can download the source from
+http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html
+and compile and install it e.g. as follows:
+
+    ./configure --prefix=$HOME/opt
+    make
+    make install
+
+Then set the paths accordingly to that the compiler and linker
+can find it, e.g.:
+
+    export CPATH=$HOME/opt/include
+    export LIBRARY_PATH=$HOME/opt/lib
+
+Compile:
+
+    compile/gcc-linux.sh
+
+Test:
+
+    test/test.sh
+
+See compile/gcc-*-linux.sh if you want to use a different version
+of GCC.
+
+
+### Linux and ICC
+
+As above, but use the following command to compile:
+
+    compile/icc-linux.sh
+
+
+### OS X and GCC from Homebrew
+
+If needed, install gcc 4.9 and cfitsio from Homebrew:
 
     brew install gcc cfitsio
 
@@ -108,7 +143,7 @@ Test:
     test/test.sh
 
 
-### OS X 10.10 and clang
+### OS X and clang from Xcode
 
 (Not recommended: slow, will not use OpenMP.)
 
@@ -125,49 +160,6 @@ Test:
     test/test.sh
 
 
-### Linux and GCC 4.7 or later
-
-Install cfitsio first. You can download the source from
-http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html
-and compile and install it e.g. as follows:
-
-    ./configure --prefix=$HOME/opt
-    make
-    make install
-
-Then set the paths accordingly to that the compiler and linker
-can find it, e.g.:
-
-    export CPATH=$HOME/opt/include
-    export LIBRARY_PATH=$HOME/opt/lib
-
-Make sure you have got GCC version 4.7 or later, e.g.:
-
-    g++ --version
-    g++-4.7 --version
-    g++-4.8 --version
-    g++-4.9 --version
-
-Depending on the name of your preferred C++ compiler, use
-one of the following commands to compile mf2d:
-
-    compile/gcc-linux.sh
-    compile/gcc-47-linux.sh
-    compile/gcc-48-linux.sh
-    compile/gcc-49-linux.sh
-
-Test:
-
-    test/test.sh
-
-
-### Linux and ICC 14.0 or later
-
-As above, but use the following command to compile:
-
-    compile/icc-linux.sh
-
-
 Platforms and versions
 ----------------------
 
@@ -179,8 +171,8 @@ Tested on the following platforms:
 
 With e.g. the following compilers:
 
-  - GCC 4.7, 4.8, 4.9
-  - ICC 14.0, 15.0
+  - GCC 4.4, 4.6, 4.7, 4.8, 4.9
+  - ICC 13.0, 14.0, 15.0
   - Apple LLVM version 6.0
 
 Using the following libraries:

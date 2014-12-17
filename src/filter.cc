@@ -18,25 +18,17 @@ static_assert((ONE64 << SHIFT64) == (MASK64 + 1), "sane bit masks");
 
 
 // Find nth bit that is set and return its index
-// (64 = no such bit)
+// (no such bit: output undefined)
 
 inline int findnth64(uint64_t x, int n) {
 #ifdef __AVX2__
-    uint64_t bit {_pdep_u64(ONE64 << n, x)};
-    return static_cast<int>(__tzcnt_u64(bit));
+    x = _pdep_u64(ONE64 << n, x);
 #else
-    int j {0};
-    int i {0};
-    while (x) {
-        j += static_cast<int>(x & 1);
-        if (j > n) {
-            return i;
-        }
-        x >>= 1;
-        ++i;
+    for (int i {0}; i < n; ++i) {
+        x &= x - 1;
     }
-    return 64;
 #endif
+    return __builtin_ctzll(x);
 }
 
 
@@ -95,7 +87,6 @@ struct Window {
         int n {(half[1] - half[0] - 1) / 2};
         assert(n < count[p]);
         int j {findnth64(buf[p], n)};
-        assert(j < 64);
         return (p << SHIFT64) | j;
     }
 

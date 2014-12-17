@@ -4,6 +4,7 @@
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <stdint.h>
 #include <x86intrin.h>
 #include "param.h"
 

@@ -53,9 +53,9 @@ struct Window {
             buf[i] = 0;
             count[i] = 0;
         }
+        half[0] = 0;
+        half[1] = 0;
         p = BB64 / 2;
-        small = 0;
-        large = 0;
     }
 
     inline void update(int op, int s) {
@@ -69,34 +69,30 @@ struct Window {
         }
         buf[i] ^= (ONE64 << j);
         count[i] += op;
-        if (i < p) {
-            small += op;
-        } else {
-            large += op;
-        }
+        half[i >= p] += op;
     }
 
     inline void fix() {
-        while (small >= large) {
+        while (half[0] >= half[1]) {
             --p;
-            small -= count[p];
-            large += count[p];
+            half[0] -= count[p];
+            half[1] += count[p];
         }
-        while (small + count[p] < large - count[p]) {
-            small += count[p];
-            large -= count[p];
+        while (half[0] + count[p] < half[1] - count[p]) {
+            half[0] += count[p];
+            half[1] -= count[p];
             ++p;
         }
     }
 
     inline bool even() const {
-        return ((small + large) & 1) == 0;
+        return ((half[0] + half[1]) & 1) == 0;
     }
 
     // Rounds down if even number of points
     inline int med() const {
-        assert(small < large);
-        int n {(large - small - 1) / 2};
+        assert(half[0] < half[1]);
+        int n {(half[1] - half[0] - 1) / 2};
         assert(n < count[p]);
         int j {findnth64(buf[p], n)};
         assert(j < 64);
@@ -111,13 +107,12 @@ private:
     uint64_t buf[BB64];
     // count[i] = popcount(buf[i])
     int count[BB64];
+    // half[0] = count[0] + ... + count[p-1]
+    // half[1] = count[p] + ... + count[BB64-1]
+    int half[2];
     // The current guess is that the median is in buf[p].
     // The guess is corrected by calling "fix".
     int p;
-    // small = count[0] + ... + count[p-1]
-    int small;
-    // large = count[p] + ... + count[BB64-1]
-    int large;
 };
 
 

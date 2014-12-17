@@ -7,12 +7,12 @@ def build(dir, **d):
 
 linkcommon='-lcfitsio'
 gccdiag='-fdiagnostics-color=auto -Werror -Wall -Wextra -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Wdouble-promotion -Wconversion -Wsign-conversion -Wmissing-declarations -Wredundant-decls -Wno-unused-parameter -Wno-float-equal -Wno-array-bounds'
-clangdiag='-Weverything -Werror -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-padded -Wno-weak-template-vtables -Wno-weak-vtables -Wno-source-uses-openmp -Wno-unused-parameter -Wno-float-equal'
+clangdiag='-Weverything -Werror -Wno-padded -Wno-weak-template-vtables -Wno-weak-vtables -Wno-source-uses-openmp -Wno-unused-parameter -Wno-float-equal'
 gccopt='-march=native -O3 -Wa,-q'
 clangopt='-march=native -O3'
 gcclink=linkcommon + ' -fopenmp'
-gcccommon=gccdiag + ' ' + gccopt + ' -fopenmp -std=c++11'
-clangcommon=clangdiag + ' ' + clangopt + ' -std=c++11'
+gcccommon=gccdiag + ' ' + gccopt + ' -fopenmp'
+clangcommon=clangdiag + ' ' + clangopt
 gccsanity='-fsanitize=address -fsanitize=undefined'
 build('build',
     CXX='g++-4.9',

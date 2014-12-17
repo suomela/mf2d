@@ -8,7 +8,7 @@ struct Image {
     T* p;
 
     Image(int x_, int y_)
-        : x{x_}, y{y_}, p{0}
+        : x(x_), y(y_), p(0)
     {}
 
     inline int size() const {
@@ -43,7 +43,7 @@ class Driver : public VDriver
 public:
     // Driver will own img.p
     Driver(Settings settings_, Image<T> img)
-        : settings(settings_), in{img}, out{img.x, img.y}
+        : settings(settings_), in(img), out(img.x, img.y)
     {
         out.alloc();
     }

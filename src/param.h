@@ -1,7 +1,7 @@
 #ifndef PARAM_H
 #define PARAM_H
 
-constexpr int MAX_H {100};
+const int MAX_H = 100;
 
 #define BLOCK_SIZES 16,32,64,128,256,512
 

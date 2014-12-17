@@ -1,22 +1,26 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#include <chrono>
+#include <sys/time.h>
 
 class Timer {
 public:
-    explicit Timer() : start{Clock::now()}
+    Timer() : start(get_time())
     {}
 
     double peek() {
-        using Sec = std::chrono::duration<double>;
-        Sec elapsed {std::chrono::duration_cast<Sec>(Clock::now() - start)};
-        return elapsed.count();
+        double now = get_time();
+        return now - start;
     }
 
 private:
-    using Clock = std::chrono::high_resolution_clock;
-    const Clock::time_point start;
+    static double get_time() {
+        struct timeval tm;
+        gettimeofday(&tm, NULL);
+        return static_cast<double>(tm.tv_sec) + static_cast<double>(tm.tv_usec) / 1E6;
+    }
+
+    double start;
 };
 
 #endif

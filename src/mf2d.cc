@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <iostream>
 #include "driver.h"
 #include "imageio.h"
@@ -5,7 +6,7 @@
 
 static int parse_int(const char *s, int min, int max, const char *descr) {
     char *endptr;
-    long x {std::strtol(s, &endptr, 10)};
+    long x = std::strtol(s, &endptr, 10);
     if (s[0] == 0 || endptr[0] != 0) {
         std::cerr << descr << " must be a number" << std::endl;
         std::exit(EXIT_FAILURE);
@@ -27,7 +28,7 @@ int main(int argc, const char** argv) {
     settings.source = argv[2];
     settings.target_med = argv[3];
     settings.target_diff = argv[4];
-    VDriver* driver {from_image(settings)};
+    VDriver* driver = from_image(settings);
     driver->process();
     delete driver;
 }

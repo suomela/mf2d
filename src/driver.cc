@@ -11,7 +11,7 @@ template <typename T>
 void Driver<T>::process() {
     median_filter<T>(in.x, in.y, settings.h, settings.h, 0, in.p, out.p);
     write_image(settings.target_med, out);
-    for (int i {0}; i < out.size(); ++i) {
+    for (int i = 0; i < out.size(); ++i) {
         out.p[i] = in.p[i] - out.p[i];
     }
     write_image(settings.target_diff, out);
@@ -19,10 +19,13 @@ void Driver<T>::process() {
 
 template <typename T>
 void Driver<T>::benchmark() {
-    for (int h {0}; h <= MAX_H; ++h) {
+    const int block_sizes[] = {BLOCK_SIZES};
+    const int n_block_sizes = sizeof(block_sizes)/sizeof(int);
+    for (int h = 0; h <= MAX_H; ++h) {
         std::cout << h << std::flush;
         T* prev = 0;
-        for (int block : {BLOCK_SIZES}) {
+        for (int iblock = 0; iblock < n_block_sizes; ++iblock) {
+            int block = block_sizes[iblock];
             if (block < 2.5*h+1) {
                 std::cout << "\t-" << std::flush;
             } else {
@@ -31,17 +34,17 @@ void Driver<T>::benchmark() {
                 double t = timer.peek();
                 std::cout << "\t" << t << std::flush;
                 if (prev) {
-                    for (int i {0}; i < out.size(); ++i) {
-                        T a {out.p[i]};
-                        T b {prev[i]};
-                        bool ok {(a == b) || (std::isnan(a) && std::isnan(b))};
+                    for (int i = 0; i < out.size(); ++i) {
+                        T a = out.p[i];
+                        T b = prev[i];
+                        bool ok = (a == b) || (std::isnan(a) && std::isnan(b));
                         if (!ok) {
                             throw std::runtime_error("output mismatch");
                         }
                     }
                 } else {
                     prev = new T[out.size()];
-                    for (int i {0}; i < out.size(); ++i) {
+                    for (int i = 0; i < out.size(); ++i) {
                         prev[i] = out.p[i];
                     }
                 }

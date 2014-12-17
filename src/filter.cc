@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <cstdint>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -10,11 +9,9 @@
 
 // Bit manipulation
 
-constexpr int MASK64 { 64-1 };
-constexpr int SHIFT64 { 6 };
-constexpr uint64_t ONE64 { 1 };
-
-static_assert((ONE64 << SHIFT64) == (MASK64 + 1), "sane bit masks");
+const int MASK64 = 64-1;
+const int SHIFT64 = 6;
+const uint64_t ONE64 = 1;
 
 
 // Find nth bit that is set and return its index
@@ -24,7 +21,7 @@ inline int findnth64(uint64_t x, int n) {
 #ifdef __AVX2__
     x = _pdep_u64(ONE64 << n, x);
 #else
-    for (int i {0}; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
         x &= x - 1;
     }
 #endif
@@ -36,12 +33,12 @@ inline int findnth64(uint64_t x, int n) {
 
 template <int B>
 struct Window {
-    constexpr static int BB {B * B};
-    constexpr static int BB64 {BB / 64};
+    const static int BB = B * B;
+    const static int BB64 = BB / 64;
 
     inline void clear()
     {
-        for (int i {0}; i < BB64; ++i) {
+        for (int i = 0; i < BB64; ++i) {
             buf[i] = 0;
             count[i] = 0;
         }
@@ -52,8 +49,8 @@ struct Window {
 
     inline void update(int op, int s) {
         assert(op == -1 || op == +1);
-        int i { s >> SHIFT64 };
-        int j { s & MASK64 };
+        int i = s >> SHIFT64;
+        int j = s & MASK64;
         if (op == +1) {
             assert(!(buf[i] & (ONE64 << j)));
         } else {
@@ -84,9 +81,9 @@ struct Window {
     // Rounds down if even number of points
     inline int med() const {
         assert(half[0] < half[1]);
-        int n {(half[1] - half[0] - 1) / 2};
+        int n = (half[1] - half[0] - 1) / 2;
         assert(n < count[p]);
-        int j {findnth64(buf[p], n)};
+        int j = findnth64(buf[p], n);
         return (p << SHIFT64) | j;
     }
 
@@ -112,10 +109,10 @@ private:
 template <int B>
 struct Dim {
     Dim(int size_, int h_)
-        : size{size_},
-          h{h_},
-          step{calc_step(h_)},
-          count{calc_count(size_, h_)}
+        : size(size_),
+          h(h_),
+          step(calc_step(h_)),
+          count(calc_count(size_, h_))
     {
         assert(2 * h + 1 < B);
         assert(count >= 1);
@@ -137,8 +134,8 @@ private:
         if (size <= B) {
             return 1;
         } else {
-            int interior {size - 2 * h};
-            int step {calc_step(h)};
+            int interior = size - 2 * h;
+            int step = calc_step(h);
             return (interior + step - 1) / step;
         }
     }
@@ -149,13 +146,13 @@ private:
 
 template <int B>
 struct BDim {
-    BDim(Dim<B> dim_) : dim{dim_} {
+    BDim(Dim<B> dim_) : dim(dim_) {
         set(0);
     }
 
     inline void set(int i) {
-        bool is_first {i == 0};
-        bool is_last {i + 1 == dim.count};
+        bool is_first (i == 0);
+        bool is_last (i + 1 == dim.count);
         start = dim.step * i;
         int end;
         if (is_last) {
@@ -200,7 +197,7 @@ template <typename T, typename R, int B>
 class MedCalc {
 public:
     MedCalc(Dim<B> dimx_, Dim<B> dimy_, const T* in_, T* out_)
-        : bx{dimx_}, by{dimy_}, in{in_}, out{out_}
+        : bx(dimx_), by(dimy_), in(in_), out(out_)
     {}
 
     void run(int bx_, int by_)
@@ -218,21 +215,21 @@ public:
 
 private:
     void calc_rank() {
-        for (int y {0}; y < by.size; ++y) {
-            for (int x {0}; x < bx.size; ++x) {
+        for (int y = 0; y < by.size; ++y) {
+            for (int x = 0; x < bx.size; ++x) {
                 sorted[pack(x, y)] = std::make_pair(get_pixel(x, y), pack(x, y));
             }
         }
         std::sort(sorted, sorted + bxy_size);
-        for (int i {0}; i < bxy_size; ++i) {
+        for (int i = 0; i < bxy_size; ++i) {
             rank[sorted[i].second] = static_cast<R>(i);
         }
     }
 
     // Simple baseline implementation for testing
     void medians_naive() {
-        for (int y {by.b0}; y < by.b1; ++y) {
-            for (int x {bx.b0}; x < bx.b1; ++x) {
+        for (int y = by.b0; y < by.b1; ++y) {
+            for (int x = bx.b0; x < bx.b1; ++x) {
                 window.clear();
                 update_block(+1, bx.w0(x), bx.w1(x), by.w0(y), by.w1(y));
                 set_med(x, y);
@@ -242,13 +239,13 @@ private:
 
     void medians() {
         window.clear();
-        int x {bx.b0};
-        int y {by.b0};
+        int x = bx.b0;
+        int y = by.b0;
         update_block(+1, bx.w0(x), bx.w1(x), by.w0(y), by.w1(y));
         set_med(x, y);
-        bool down {true};
+        bool down = true;
         while (true) {
-            bool right {false};
+            bool right = false;
             if (down) {
                 if (y + 1 == by.b1) {
                     right = true;
@@ -283,8 +280,8 @@ private:
     }
 
     inline void update_block(int op, int x0, int x1, int y0, int y1) {
-        for (int y {y0}; y < y1; ++y) {
-            for (int x {x0}; x < x1; ++x) {
+        for (int y = y0; y < y1; ++y) {
+            for (int x = x0; x < x1; ++x) {
                 window.update(op, rank[pack(x, y)]);
             }
         }
@@ -292,13 +289,13 @@ private:
 
     inline void set_med(int x, int y) {
         window.fix();
-        int med1 {window.med()};
-        T value {sorted[med1].first};
+        int med1 = window.med();
+        T value = sorted[med1].first;
         if (window.even()) {
             window.update(-1, med1);
             window.fix();
             assert(!window.even());
-            int med2 {window.med()};
+            int med2 = window.med();
             window.update(+1, med1);
             assert(med2 > med1);
             value += sorted[med2].first;
@@ -323,7 +320,7 @@ private:
         out[coord(x, y)] = value;
     }
 
-    constexpr static int BB {Window<B>::BB};
+    const static int BB = Window<B>::BB;
     std::pair<T,R> sorted[BB];
     R rank[BB];
     Window<B> window;
@@ -332,10 +329,6 @@ private:
     int bxy_size;
     const T* const in;
     T* const out;
-
-#ifndef __INTEL_COMPILER
-    static_assert(std::numeric_limits<R>::max() >= BB-1, "rank type large enough");
-#endif
 };
 
 
@@ -362,11 +355,11 @@ void median_filter_impl(int x, int y, int hx, int hy, const T* in, T* out) {
 
 template <typename T>
 void median_filter(int x, int y, int hx, int hy, int blockhint, const T* in, T* out) {
-    int h {std::max(hx, hy)};
+    int h = std::max(hx, hy);
     if (h > MAX_H) {
         throw std::invalid_argument("window too large");
     }
-    int blocksize {blockhint ? blockhint : choose_blocksize(h)};
+    int blocksize = blockhint ? blockhint : choose_blocksize(h);
     switch (blocksize) {
     case 16:
         median_filter_impl<T,uint8_t,16>(x, y, hx, hy, in, out);

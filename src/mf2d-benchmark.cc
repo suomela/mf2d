@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <iostream>
 #include "driver.h"
 #include "imageio.h"
@@ -12,7 +13,7 @@ int main(int argc, const char** argv) {
     settings.source = argv[1];
     settings.target_med = NULL;
     settings.target_diff = NULL;
-    VDriver* driver {from_image(settings)};
+    VDriver* driver = from_image(settings);
     driver->benchmark();
     delete driver;
 }

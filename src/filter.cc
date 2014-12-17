@@ -342,7 +342,9 @@ private:
     const T* const in;
     T* const out;
 
+#ifndef __INTEL_COMPILER
     static_assert(std::numeric_limits<R>::max() >= BB-1, "rank type large enough");
+#endif
 };
 
 

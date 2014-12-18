@@ -71,7 +71,7 @@ template <typename T>
 void Driver1D<T>::benchmark() {
     const int block_sizes[] = {BLOCK_SIZES_1D};
     const int n_block_sizes = sizeof(block_sizes)/sizeof(int);
-    for (int h = 0; h <= MAX_H_1D; ++h) {
+    for (int h = 0; h <= MAX_H_1D; h += 10) {
         std::cout << h << std::flush;
         T* prev = 0;
         for (int iblock = 0; iblock < n_block_sizes; ++iblock) {

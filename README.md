@@ -9,7 +9,8 @@ Usage
 
 ### As a command-line tool
 
-You can use "mf2d" to process 32-bit and 64-bit FITS images.
+You can use "mf2d" to process 32-bit and 64-bit FITS images,
+both 1-dimensional and 2-dimensional.
 
 Usage:
 
@@ -20,9 +21,10 @@ Example:
     bin/mf2d 15 example/test-1.fits a.fits b.fits
 
 "Radius" is the window radius in pixels. For example, a radius
-of 15 means a window of 31x31 pixels in total.
+of 15 in a 2D image means a window of 31x31 pixels in total.
 
-"Input" is a FITS file, 2 dimensions, floating point values.
+"Input" is a FITS file, 1 or 2 dimensions, 32-bit or 64-bit
+floating point values.
 
 "Output-median" will be a FITS file that contains the result
 of median filtering.
@@ -114,8 +116,11 @@ cases we will output the average of the two middle values.
 
 ### Limits
 
-The maximum radius is currently 100 (i.e., the maximum window
-size is 201x201).
+For 2D filtering, the maximum radius is currently 100
+(i.e., the maximum window size is 201x201).
+
+For 1D filtering, the maximum radius is currently 1000
+(i.e., the maximum window size is 2001).
 
 The maximum total image size is currently 2^31 pixels.
 

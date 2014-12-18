@@ -24,7 +24,7 @@ int main(int argc, const char** argv) {
         std::exit(EXIT_FAILURE);
     }
     Settings settings;
-    settings.h = parse_int(argv[1], 0, MAX_H, "radius");
+    settings.h = parse_int(argv[1], 0, MAX_H_1D, "radius");
     settings.source = argv[2];
     settings.target_med = argv[3];
     settings.target_diff = argv[4];

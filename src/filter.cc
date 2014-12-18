@@ -200,12 +200,12 @@ struct BDim {
 };
 
 
-// MedCalc.run(i,j) calculates medians for block (i,j).
+// MedCalc2D.run(i,j) calculates medians for block (i,j).
 
 template <typename T, typename R, int B>
-class MedCalc {
+class MedCalc2D {
 public:
-    MedCalc(Dim<B> dimx_, Dim<B> dimy_, const T* in_, T* out_)
+    MedCalc2D(Dim<B> dimx_, Dim<B> dimy_, const T* in_, T* out_)
         : bx(dimx_), by(dimy_), in(in_), out(out_)
     {}
 
@@ -361,8 +361,129 @@ private:
 };
 
 
+
 template <typename T, typename R, int B>
-void median_filter_impl(int x, int y, int hx, int hy, const T* in, T* out) {
+class MedCalc1D {
+public:
+    MedCalc1D(Dim<B> dimx_, const T* in_, T* out_)
+        : bx(dimx_), in(in_), out(out_)
+    {}
+
+    void run(int bx_)
+    {
+        bx.set(bx_);
+        calc_rank();
+#ifdef NAIVE
+        medians_naive();
+#else
+        medians();
+#endif
+    }
+
+private:
+    void calc_rank() {
+        nanmarker = NO_NAN_MARKER;
+        int numcount = 0;
+        for (int x = 0; x < bx.size; ++x) {
+            T value = get_pixel(x);
+            R slot = pack(x);
+            if (std::isnan(value)) {
+                nanmarker = NAN_MARKER;
+                rank[slot] = NAN_MARKER;
+            } else {
+                sorted[numcount] = std::make_pair(value, slot);
+                ++numcount;
+            }
+        }
+        std::sort(sorted, sorted + numcount);
+        for (int i = 0; i < numcount; ++i) {
+            rank[sorted[i].second] = static_cast<R>(i);
+        }
+    }
+
+    // Simple baseline implementation for testing
+    void medians_naive() {
+        for (int x = bx.b0; x < bx.b1; ++x) {
+            window.clear();
+            update_block(+1, bx.w0(x), bx.w1(x));
+            set_med(x);
+        }
+    }
+
+    void medians() {
+        window.clear();
+        int x = bx.b0;
+        update_block(+1, bx.w0(x), bx.w1(x));
+        set_med(x);
+        while (x + 1 != bx.b1) {
+            update_block(-1, bx.w0(x), bx.w0(x+1));
+            ++x;
+            update_block(+1, bx.w1(x-1), bx.w1(x));
+            set_med(x);
+        }
+    }
+
+    inline void update_block(int op, int x0, int x1) {
+        for (int x = x0; x < x1; ++x) {
+            int s = rank[pack(x)];
+            if (s != nanmarker) {
+                window.update(op, s);
+            }
+        }
+    }
+
+    inline void set_med(int x) {
+        if (window.empty()) {
+            set_pixel(x, std::numeric_limits<T>::quiet_NaN());
+        } else {
+            window.fix();
+            int med1 = window.med();
+            T value = sorted[med1].first;
+            if (window.even()) {
+                window.update(-1, med1);
+                window.fix();
+                assert(!window.even());
+                int med2 = window.med();
+                window.update(+1, med1);
+                assert(med2 > med1);
+                value += sorted[med2].first;
+                value /= 2;
+            }
+            set_pixel(x, value);
+        }
+    }
+
+    inline R pack(int x) const {
+        return static_cast<R>(x);
+    }
+
+    inline int coord(int x) const {
+        return x + bx.start;
+    }
+
+    inline T get_pixel(int x) const {
+        return in[coord(x)];
+    }
+
+    inline void set_pixel(int x, T value) {
+        out[coord(x)] = value;
+    }
+
+    std::pair<T,R> sorted[B];
+    R rank[B];
+    Window<B> window;
+    BDim<B> bx;
+    int bxy_size;
+    const static int NO_NAN_MARKER = -1;
+    const static R NAN_MARKER = B - 1;
+    int nanmarker;
+    const T* const in;
+    T* const out;
+};
+
+
+template <typename T, typename R, int B>
+void median_filter_impl_2d(int x, int y, int hx, int hy, const T* in, T* out) {
     if (2 * hx + 1 > B || 2 * hy + 1 > B) {
         throw std::invalid_argument("window too large for this block size");
     }
@@ -370,7 +491,7 @@ void median_filter_impl(int x, int y, int hx, int hy, const T* in, T* out) {
     Dim<B> dimy(y, hy);
     #pragma omp parallel
     {
-        MedCalc<T,R,B>* mc = new MedCalc<T,R,B>(dimx, dimy, in, out);
+        MedCalc2D<T,R,B>* mc = new MedCalc2D<T,R,B>(dimx, dimy, in, out);
         #pragma omp for collapse(2)
         for (int by = 0; by < dimy.count; ++by) {
             for (int bx = 0; bx < dimx.count; ++bx) {
@@ -382,31 +503,49 @@ void median_filter_impl(int x, int y, int hx, int hy, const T* in, T* out) {
 }
 
 
+template <typename T, typename R, int B>
+void median_filter_impl_1d(int x, int hx, const T* in, T* out) {
+    if (2 * hx + 1 > B) {
+        throw std::invalid_argument("window too large for this block size");
+    }
+    Dim<B> dimx(x, hx);
+    #pragma omp parallel
+    {
+        MedCalc1D<T,R,B>* mc = new MedCalc1D<T,R,B>(dimx, in, out);
+        #pragma omp for
+        for (int bx = 0; bx < dimx.count; ++bx) {
+            mc->run(bx);
+        }
+        delete[] mc;
+    }
+}
+
+
 template <typename T>
 void median_filter_2d(int x, int y, int hx, int hy, int blockhint, const T* in, T* out) {
     int h = std::max(hx, hy);
-    if (h > MAX_H) {
+    if (h > MAX_H_2D) {
         throw std::invalid_argument("window too large");
     }
-    int blocksize = blockhint ? blockhint : choose_blocksize(h);
+    int blocksize = blockhint ? blockhint : choose_blocksize_2d(h);
     switch (blocksize) {
     case 16:
-        median_filter_impl<T,uint8_t,16>(x, y, hx, hy, in, out);
+        median_filter_impl_2d<T,uint8_t,16>(x, y, hx, hy, in, out);
         break;
     case 32:
-        median_filter_impl<T,uint16_t,32>(x, y, hx, hy, in, out);
+        median_filter_impl_2d<T,uint16_t,32>(x, y, hx, hy, in, out);
         break;
     case 64:
-        median_filter_impl<T,uint16_t,64>(x, y, hx, hy, in, out);
+        median_filter_impl_2d<T,uint16_t,64>(x, y, hx, hy, in, out);
         break;
     case 128:
-        median_filter_impl<T,uint16_t,128>(x, y, hx, hy, in, out);
+        median_filter_impl_2d<T,uint16_t,128>(x, y, hx, hy, in, out);
         break;
     case 256:
-        median_filter_impl<T,uint16_t,256>(x, y, hx, hy, in, out);
+        median_filter_impl_2d<T,uint16_t,256>(x, y, hx, hy, in, out);
         break;
     case 512:
-        median_filter_impl<T,int,512>(x, y, hx, hy, in, out);
+        median_filter_impl_2d<T,int,512>(x, y, hx, hy, in, out);
         break;
     default:
         throw std::invalid_argument("unsupported block size");
@@ -415,7 +554,35 @@ void median_filter_2d(int x, int y, int hx, int hy, int blockhint, const T* in, 
 
 template <typename T>
 void median_filter_1d(int x, int hx, int blockhint, const T* in, T* out) {
-    median_filter_2d<T>(x, 1, hx, 0, blockhint, in, out);
+    if (hx > MAX_H_1D) {
+        throw std::invalid_argument("window too large");
+    }
+    int blocksize = blockhint ? blockhint : choose_blocksize_1d(hx);
+    switch (blocksize) {
+    case 64:
+        median_filter_impl_1d<T,uint8_t,64>(x, hx, in, out);
+        break;
+    case 128:
+        median_filter_impl_1d<T,uint8_t,128>(x, hx, in, out);
+        break;
+    case 256:
+        median_filter_impl_1d<T,uint8_t,256>(x, hx, in, out);
+        break;
+    case 512:
+        median_filter_impl_1d<T,uint16_t,512>(x, hx, in, out);
+        break;
+    case 1024:
+        median_filter_impl_1d<T,uint16_t,1024>(x, hx, in, out);
+        break;
+    case 2048:
+        median_filter_impl_1d<T,uint16_t,2048>(x, hx, in, out);
+        break;
+    case 4096:
+        median_filter_impl_1d<T,uint16_t,4096>(x, hx, in, out);
+        break;
+    default:
+        throw std::invalid_argument("unsupported block size");
+    }
 }
 
 template void median_filter_2d<float>(int x, int y, int hx, int hy, int blockhint, const float* in, float* out);

@@ -2,17 +2,34 @@
 #define DRIVER_H
 
 template <typename T>
-struct Image {
+struct Image2D {
     int x;
     int y;
     T* p;
 
-    Image(int x_, int y_)
-        : x(x_), y(y_), p(0)
+    Image2D(int x_, int y_) : x(x_), y(y_), p(0)
     {}
 
     inline int size() const {
         return x * y;
+    }
+
+    inline void alloc() {
+        p = new T[size()];
+    }
+};
+
+
+template <typename T>
+struct Image1D {
+    int x;
+    T* p;
+
+    Image1D(int x_) : x(x_), p(0)
+    {}
+
+    inline int size() const {
+        return x;
     }
 
     inline void alloc() {
@@ -38,17 +55,17 @@ public:
 
 
 template <typename T>
-class Driver : public VDriver
+class Driver2D : public VDriver
 {
 public:
     // Driver will own img.p
-    Driver(Settings settings_, Image<T> img)
+    Driver2D(Settings settings_, Image2D<T> img)
         : settings(settings_), in(img), out(img.x, img.y)
     {
         out.alloc();
     }
 
-    ~Driver() {
+    ~Driver2D() {
         delete in.p;
         delete out.p;
     }
@@ -58,8 +75,34 @@ public:
 
 private:
     const Settings settings;
-    Image<T> in;
-    Image<T> out;
+    Image2D<T> in;
+    Image2D<T> out;
+};
+
+
+template <typename T>
+class Driver1D : public VDriver
+{
+public:
+    // Driver will own img.p
+    Driver1D(Settings settings_, Image1D<T> img)
+        : settings(settings_), in(img), out(img.x)
+    {
+        out.alloc();
+    }
+
+    ~Driver1D() {
+        delete in.p;
+        delete out.p;
+    }
+
+    void process();
+    void benchmark();
+
+private:
+    const Settings settings;
+    Image1D<T> in;
+    Image1D<T> out;
 };
 
 #endif

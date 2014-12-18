@@ -27,9 +27,9 @@ static void fcheck(int s) {
 }
 
 
-static void verify_dim(const long* naxes) {
-    int64_t x = naxes[1];
-    int64_t y = naxes[0];
+static void verify_dim_2d(const long* naxes) {
+    int64_t x = naxes[0];
+    int64_t y = naxes[1];
     if (x < 1 || y < 1) {
         std::cerr << "image dimensions "
             << x << "x" << y << " too small" << std::endl;
@@ -43,41 +43,52 @@ static void verify_dim(const long* naxes) {
 }
 
 
-template <typename T>
-static Image<T> read_image_data(const char* filename, fitsfile* f) {
-    int s = 0;
-    int naxis = 0;
-    fcheck(fits_get_img_dim(f, &naxis, &s));
-    if (naxis != 2) {
-        std::cerr << "expected 2-dimensional data, got "
-            << naxis << "-dimensional data" << std::endl;
+static void verify_dim_1d(const long* naxes) {
+    int64_t x = naxes[0];
+    if (x < 1) {
+        std::cerr << "image dimension "
+            << x << " too small" << std::endl;
         std::exit(EXIT_FAILURE);
     }
+    if (x >= std::numeric_limits<int>::max()) {
+        std::cerr << "image dimension "
+            << x << " too large" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+}
 
+
+template <typename T>
+static Image2D<T> read_image_data_2d(const char* filename, fitsfile* f) {
+    int s = 0;
     long naxes[2] = {0,0};
     fcheck(fits_get_img_size(f, 2, naxes, &s));
-    verify_dim(naxes);
+    verify_dim_2d(naxes);
     int x = static_cast<int>(naxes[0]);
     int y = static_cast<int>(naxes[1]);
-    Image<T> img(x, y);
+    Image2D<T> img(x, y);
     T nulval = std::numeric_limits<T>::quiet_NaN();
     int anynul = 0;
     img.alloc();
     fcheck(fits_read_img(f, get_fits_type<T>(), 1, img.size(), &nulval, img.p, &anynul, &s));
     fcheck(fits_close_file(f, &s));
-#ifdef VERBOSE
-    int nancount = 0;
-    if (anynul) {
-        for (int i = 0; i < img.size(); ++i) {
-            nancount += std::isnan(img.p[i]);
-        }
-    }
-    std::cout << filename
-        << ": " << x << "x" << y
-        << ", " << get_type_descr<T>()
-        << ", " << nancount << " undefined elements"
-        << "\n";
-#endif
+    return img;
+}
+
+
+template <typename T>
+static Image1D<T> read_image_data_1d(const char* filename, fitsfile* f) {
+    int s = 0;
+    long naxes[2] = {0};
+    fcheck(fits_get_img_size(f, 1, naxes, &s));
+    verify_dim_1d(naxes);
+    int x = static_cast<int>(naxes[0]);
+    Image1D<T> img(x);
+    T nulval = std::numeric_limits<T>::quiet_NaN();
+    int anynul = 0;
+    img.alloc();
+    fcheck(fits_read_img(f, get_fits_type<T>(), 1, img.size(), &nulval, img.p, &anynul, &s));
+    fcheck(fits_close_file(f, &s));
     return img;
 }
 
@@ -106,8 +117,20 @@ static fitsfile* open_image_for_reading(const char* filename) {
 
 template <typename T>
 static VDriver* from_image_helper(Settings settings, fitsfile* f) {
-    Image<T> img = read_image_data<T>(settings.source, f);
-    return new Driver<T>(settings, img);
+    int s = 0;
+    int naxis = 0;
+    fcheck(fits_get_img_dim(f, &naxis, &s));
+    if (naxis == 1) {
+        Image1D<T> img = read_image_data_1d<T>(settings.source, f);
+        return new Driver1D<T>(settings, img);
+    } else if (naxis == 2) {
+        Image2D<T> img = read_image_data_2d<T>(settings.source, f);
+        return new Driver2D<T>(settings, img);
+    } else {
+        std::cerr << "expected 1-dimensional or 2-dimensional data, got "
+            << naxis << "-dimensional data" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
 }
 
 
@@ -134,7 +157,7 @@ VDriver* from_image(Settings settings) {
 
 
 template <typename T>
-void write_image(const char* filename, Image<T> img)
+void write_image(const char* filename, Image2D<T> img)
 {
     fitsfile* f = NULL;
     int s = 0;
@@ -142,16 +165,26 @@ void write_image(const char* filename, Image<T> img)
     long naxes[2] = {img.x, img.y};
     fcheck(fits_create_img(f, get_fits_bitpix<T>(), 2, naxes, &s));
     T nulval = std::numeric_limits<T>::quiet_NaN();
-    fcheck(fits_write_imgnull(f, get_fits_type<T>(), 1, img.x * img.y, img.p, &nulval, &s));
+    fcheck(fits_write_imgnull(f, get_fits_type<T>(), 1, img.size(), img.p, &nulval, &s));
     fcheck(fits_close_file(f, &s));
-#ifdef VERBOSE
-    std::cout << filename
-        << ": " << img.x << "x" << img.y
-        << ", " << get_type_descr<T>()
-        << "\n";
-#endif
 }
 
 
-template void write_image(const char* filename, Image<float> img);
-template void write_image(const char* filename, Image<double> img);
+template <typename T>
+void write_image(const char* filename, Image1D<T> img)
+{
+    fitsfile* f = NULL;
+    int s = 0;
+    fcheck(fits_create_file(&f, filename, &s));
+    long naxes[1] = {img.x};
+    fcheck(fits_create_img(f, get_fits_bitpix<T>(), 1, naxes, &s));
+    T nulval = std::numeric_limits<T>::quiet_NaN();
+    fcheck(fits_write_imgnull(f, get_fits_type<T>(), 1, img.size(), img.p, &nulval, &s));
+    fcheck(fits_close_file(f, &s));
+}
+
+
+template void write_image(const char* filename, Image2D<float> img);
+template void write_image(const char* filename, Image2D<double> img);
+template void write_image(const char* filename, Image1D<float> img);
+template void write_image(const char* filename, Image1D<double> img);

@@ -7,19 +7,41 @@
 #include "param.h"
 #include "timer.h"
 
+struct Param {
+    const int* block_sizes;
+    int max_h;
+    int benchmark_step;
+};
+
+const int block_sizes_1d[] = {BLOCK_SIZES_1D, 0};
+const int block_sizes_2d[] = {BLOCK_SIZES_2D, 0};
+const Param param1d = {block_sizes_1d, MAX_H_1D, 10};
+const Param param2d = {block_sizes_2d, MAX_H_2D, 1};
+
+
 template <typename T>
-void Driver2D<T>::process() {
-    median_filter_2d<T>(in.x, in.y, settings.h, settings.h, 0, in.p, out.p);
-    write_image(settings.target_med, out);
-    for (int i = 0; i < out.size(); ++i) {
-        out.p[i] = in.p[i] - out.p[i];
-    }
-    write_image(settings.target_diff, out);
+static const Param* get_param(const Driver<T,Image1D<T> > *tag) {
+    return &param1d;
 }
 
 template <typename T>
-void Driver1D<T>::process() {
-    median_filter_1d<T>(in.x, settings.h, 0, in.p, out.p);
+static const Param* get_param(const Driver<T,Image2D<T> > *tag) {
+    return &param2d;
+}
+
+template <typename T>
+static void filter(int h, int blockhint, Image1D<T> in, Image1D<T> out) {
+    median_filter_1d<T>(in.x, h, blockhint, in.p, out.p);
+}
+
+template <typename T>
+static void filter(int h, int blockhint, Image2D<T> in, Image2D<T> out) {
+    median_filter_2d<T>(in.x, in.y, h, h, blockhint, in.p, out.p);
+}
+
+template <typename T, typename I>
+void Driver<T,I>::process() {
+    filter<T>(settings.h, 0, in, out);
     write_image(settings.target_med, out);
     for (int i = 0; i < out.size(); ++i) {
         out.p[i] = in.p[i] - out.p[i];
@@ -46,20 +68,18 @@ static void compare(T** prev, const T* cur, int size) {
     }
 }
 
-template <typename T>
-void Driver2D<T>::benchmark() {
-    const int block_sizes[] = {BLOCK_SIZES_2D};
-    const int n_block_sizes = sizeof(block_sizes)/sizeof(int);
-    for (int h = 0; h <= MAX_H_2D; ++h) {
+template <typename T, typename I>
+void Driver<T,I>::benchmark() {
+    const Param* param = get_param(this);
+    for (int h = 0; h <= param->max_h; h += param->benchmark_step) {
         std::cout << h << std::flush;
         T* prev = 0;
-        for (int iblock = 0; iblock < n_block_sizes; ++iblock) {
-            int block = block_sizes[iblock];
-            if (block < 2.5*h+1) {
+        for (const int* block = param->block_sizes; *block; ++block) {
+            if (*block < 2.5*h+1) {
                 std::cout << "\t-" << std::flush;
             } else {
                 Timer timer;
-                median_filter_2d<T>(in.x, in.y, h, h, block, in.p, out.p);
+                filter<T>(h, *block, in, out);
                 double t = timer.peek();
                 std::cout << "\t" << t << std::flush;
                 compare<T>(&prev, out.p, out.size());
@@ -72,33 +92,7 @@ void Driver2D<T>::benchmark() {
     }
 }
 
-template <typename T>
-void Driver1D<T>::benchmark() {
-    const int block_sizes[] = {BLOCK_SIZES_1D};
-    const int n_block_sizes = sizeof(block_sizes)/sizeof(int);
-    for (int h = 0; h <= MAX_H_1D; h += 10) {
-        std::cout << h << std::flush;
-        T* prev = 0;
-        for (int iblock = 0; iblock < n_block_sizes; ++iblock) {
-            int block = block_sizes[iblock];
-            if (block < 2.5*h+1) {
-                std::cout << "\t-" << std::flush;
-            } else {
-                Timer timer;
-                median_filter_1d<T>(in.x, h, block, in.p, out.p);
-                double t = timer.peek();
-                std::cout << "\t" << t << std::flush;
-                compare<T>(&prev, out.p, out.size());
-            }
-        }
-        if (prev) {
-            delete[] prev;
-        }
-        std::cout << std::endl;
-    }
-}
-
-template class Driver1D<float>;
-template class Driver1D<double>;
-template class Driver2D<float>;
-template class Driver2D<double>;
+template class Driver<float, Image1D<float> >;
+template class Driver<float, Image2D<float> >;
+template class Driver<double, Image1D<double> >;
+template class Driver<double, Image2D<double> >;

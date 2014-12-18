@@ -122,10 +122,10 @@ static VDriver* from_image_helper(Settings settings, fitsfile* f) {
     fcheck(fits_get_img_dim(f, &naxis, &s));
     if (naxis == 1) {
         Image1D<T> img = read_image_data_1d<T>(settings.source, f);
-        return new Driver1D<T>(settings, img);
+        return new Driver<T,Image1D<T> >(settings, img);
     } else if (naxis == 2) {
         Image2D<T> img = read_image_data_2d<T>(settings.source, f);
-        return new Driver2D<T>(settings, img);
+        return new Driver<T,Image2D<T> >(settings, img);
     } else {
         std::cerr << "expected 1-dimensional or 2-dimensional data, got "
             << naxis << "-dimensional data" << std::endl;

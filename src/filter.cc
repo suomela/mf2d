@@ -456,10 +456,14 @@ private:
         int x = bx.b0;
         update_block(+1, bx.w0(x), bx.w1(x));
         set_med(x);
-        while (x + 1 != bx.b1) {
-            update_block(-1, bx.w0(x), bx.w0(x+1));
+        while (x + 1 < bx.b1) {
+            if (x >= bx.dim.h) {
+                wr.update(-1, pack(x - bx.dim.h));
+            }
             ++x;
-            update_block(+1, bx.w1(x-1), bx.w1(x));
+            if (x + bx.dim.h < bx.size) {
+                wr.update(+1, pack(x + bx.dim.h));
+            }
             set_med(x);
         }
 #endif

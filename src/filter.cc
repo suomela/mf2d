@@ -334,7 +334,7 @@ private:
         wr.init_start();
         for (int y = 0; y < by.size; ++y) {
             for (int x = 0; x < bx.size; ++x) {
-                wr.init_feed(get_pixel(x, y), pack(x, y));
+                wr.init_feed(in[coord(x, y)], pack(x, y));
             }
         }
         wr.init_finish();
@@ -401,7 +401,7 @@ private:
     }
 
     inline void set_med(int x, int y) {
-        set_pixel(x, y, wr.get_med());
+        out[coord(x, y)] = wr.get_med();
     }
 
     inline R pack(int x, int y) const {
@@ -410,14 +410,6 @@ private:
 
     inline int coord(int x, int y) const {
         return (y + by.start) * bx.dim.size + (x + bx.start);
-    }
-
-    inline T get_pixel(int x, int y) const {
-        return in[coord(x, y)];
-    }
-
-    inline void set_pixel(int x, int y, T value) {
-        out[coord(x, y)] = value;
     }
 
     WindowRank<T,R,B*B> wr;
@@ -447,7 +439,7 @@ private:
     void calc_rank() {
         wr.init_start();
         for (int x = 0; x < bx.size; ++x) {
-            wr.init_feed(get_pixel(x), pack(x));
+            wr.init_feed(in[coord(x)], pack(x));
         }
         wr.init_finish();
     }
@@ -480,7 +472,7 @@ private:
     }
 
     inline void set_med(int x) {
-        set_pixel(x, wr.get_med());
+        out[coord(x)] = wr.get_med();
     }
 
     inline R pack(int x) const {
@@ -489,14 +481,6 @@ private:
 
     inline int coord(int x) const {
         return x + bx.start;
-    }
-
-    inline T get_pixel(int x) const {
-        return in[coord(x)];
-    }
-
-    inline void set_pixel(int x, T value) {
-        out[coord(x)] = value;
     }
 
     WindowRank<T,R,B> wr;

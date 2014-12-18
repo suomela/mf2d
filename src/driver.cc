@@ -28,6 +28,25 @@ void Driver1D<T>::process() {
 }
 
 template <typename T>
+static void compare(T** prev, const T* cur, int size) {
+    if (*prev) {
+        for (int i = 0; i < size; ++i) {
+            T a = cur[i];
+            T b = (*prev)[i];
+            bool ok = (a == b) || (std::isnan(a) && std::isnan(b));
+            if (!ok) {
+                throw std::runtime_error("output mismatch");
+            }
+        }
+    } else {
+        *prev = new T[size];
+        for (int i = 0; i < size; ++i) {
+            (*prev)[i] = cur[i];
+        }
+    }
+}
+
+template <typename T>
 void Driver2D<T>::benchmark() {
     const int block_sizes[] = {BLOCK_SIZES_2D};
     const int n_block_sizes = sizeof(block_sizes)/sizeof(int);
@@ -43,21 +62,7 @@ void Driver2D<T>::benchmark() {
                 median_filter_2d<T>(in.x, in.y, h, h, block, in.p, out.p);
                 double t = timer.peek();
                 std::cout << "\t" << t << std::flush;
-                if (prev) {
-                    for (int i = 0; i < out.size(); ++i) {
-                        T a = out.p[i];
-                        T b = prev[i];
-                        bool ok = (a == b) || (std::isnan(a) && std::isnan(b));
-                        if (!ok) {
-                            throw std::runtime_error("output mismatch");
-                        }
-                    }
-                } else {
-                    prev = new T[out.size()];
-                    for (int i = 0; i < out.size(); ++i) {
-                        prev[i] = out.p[i];
-                    }
-                }
+                compare<T>(&prev, out.p, out.size());
             }
         }
         if (prev) {
@@ -83,21 +88,7 @@ void Driver1D<T>::benchmark() {
                 median_filter_1d<T>(in.x, h, block, in.p, out.p);
                 double t = timer.peek();
                 std::cout << "\t" << t << std::flush;
-                if (prev) {
-                    for (int i = 0; i < out.size(); ++i) {
-                        T a = out.p[i];
-                        T b = prev[i];
-                        bool ok = (a == b) || (std::isnan(a) && std::isnan(b));
-                        if (!ok) {
-                            throw std::runtime_error("output mismatch");
-                        }
-                    }
-                } else {
-                    prev = new T[out.size()];
-                    for (int i = 0; i < out.size(); ++i) {
-                        prev[i] = out.p[i];
-                    }
-                }
+                compare<T>(&prev, out.p, out.size());
             }
         }
         if (prev) {

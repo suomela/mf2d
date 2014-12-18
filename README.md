@@ -55,39 +55,22 @@ simple examples.
 Performance
 -----------
 
-Test data:
+Some examples of typical running times on my Macbook Air laptop
+(1.7 GHz Intel Haswell, 2 cores, 4 threads):
 
-  - example/test-1.fits
-  - 1024x1024 pixels, 32-bit floats
-  - radius = 0, 1, ..., 100
+  - less than 0.2s in total:
 
-Detailed information available in directory "benchmark".
+        build/mf2d 10 example/test-1.fits '!a.fits' '!b.fits'
 
+  - less than 0.4s in total:
 
-### Low-end laptop
+        build/mf2d 40 example/test-1.fits '!a.fits' '!b.fits'
 
-1.7 GHz Intel Haswell, 2 cores, 4 threads.
+  - less than 0.7s in total:
 
-Running time (block size B = 256):
+        build/mf2d 80 example/test-1.fits '!a.fits' '!b.fits'
 
-  - r =  20:  0.17 s
-  - r =  40:  0.28 s
-  - r =  60:  0.41 s
-  - r =  80:  0.54 s
-  - r = 100:  0.88 s
-
-
-### High-end server
-
-2.6 GHz Intel Sandy Bridge, 2 x 8 cores, 32 threads.
-
-Running time (block size B = 256):
-
-  - r =  20:  0.05 s
-  - r =  40:  0.10 s
-  - r =  60:  0.13 s
-  - r =  80:  0.16 s
-  - r = 100:  0.27 s
+The sample file is 1024x1024 pixels, 32-bit floats.
 
 
 Details

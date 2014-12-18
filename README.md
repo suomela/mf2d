@@ -1,13 +1,15 @@
 2D Median Filter for Floating-Point Data
 ========================================
 
-Filters 32-bit and 64-bit FITS images.
-
 Alpha version, bugs are possible, use at your own risk.
 
 
 Usage
 -----
+
+### As a command-line tool
+
+You can use "mf2d" to process 32-bit and 64-bit FITS images.
 
 Usage:
 
@@ -33,6 +35,19 @@ library. In particular, prefix the output file names with an
 exclamation mark if you want to overwrite existing files:
 
     bin/mf2d 15 example/test-1.fits '!a.fits' '!b.fits'
+
+You can also filter just a small part of a large image:
+
+    bin/mf2d 15 'example/test-1.fits[1:100,1:200]' a.fits b.fits
+
+
+### As a subroutine
+
+You will only need filter.cc, filter.h, and param.h.
+
+See filter.h for the interface, and mf2d-unittest.cc for
+simple examples.
+
 
 
 Performance

@@ -75,8 +75,16 @@ struct Window {
         }
     }
 
+    inline int size() const {
+        return half[0] + half[1];
+    }
+
+    inline bool empty() const {
+        return size() == 0;
+    }
+
     inline bool even() const {
-        return ((half[0] + half[1]) & 1) == 0;
+        return (size() & 1) == 0;
     }
 
     // Rounds down if even number of points
@@ -216,13 +224,23 @@ public:
 
 private:
     void calc_rank() {
+        nanmarker = NO_NAN_MARKER;
+        int numcount = 0;
         for (int y = 0; y < by.size; ++y) {
             for (int x = 0; x < bx.size; ++x) {
-                sorted[pack(x, y)] = std::make_pair(get_pixel(x, y), pack(x, y));
+                T value = get_pixel(x, y);
+                R slot = pack(x, y);
+                if (std::isnan(value)) {
+                    nanmarker = NAN_MARKER;
+                    rank[slot] = NAN_MARKER;
+                } else {
+                    sorted[numcount] = std::make_pair(value, slot);
+                    ++numcount;
+                }
             }
         }
-        std::sort(sorted, sorted + bxy_size);
-        for (int i = 0; i < bxy_size; ++i) {
+        std::sort(sorted, sorted + numcount);
+        for (int i = 0; i < numcount; ++i) {
             rank[sorted[i].second] = static_cast<R>(i);
         }
     }
@@ -283,26 +301,33 @@ private:
     inline void update_block(int op, int x0, int x1, int y0, int y1) {
         for (int y = y0; y < y1; ++y) {
             for (int x = x0; x < x1; ++x) {
-                window.update(op, rank[pack(x, y)]);
+                int s = rank[pack(x, y)];
+                if (s != nanmarker) {
+                    window.update(op, s);
+                }
             }
         }
     }
 
     inline void set_med(int x, int y) {
-        window.fix();
-        int med1 = window.med();
-        T value = sorted[med1].first;
-        if (window.even()) {
-            window.update(-1, med1);
+        if (window.empty()) {
+            set_pixel(x, y, std::numeric_limits<T>::quiet_NaN());
+        } else {
             window.fix();
-            assert(!window.even());
-            int med2 = window.med();
-            window.update(+1, med1);
-            assert(med2 > med1);
-            value += sorted[med2].first;
-            value /= 2;
+            int med1 = window.med();
+            T value = sorted[med1].first;
+            if (window.even()) {
+                window.update(-1, med1);
+                window.fix();
+                assert(!window.even());
+                int med2 = window.med();
+                window.update(+1, med1);
+                assert(med2 > med1);
+                value += sorted[med2].first;
+                value /= 2;
+            }
+            set_pixel(x, y, value);
         }
-        set_pixel(x, y, value);
     }
 
     inline R pack(int x, int y) const {
@@ -328,6 +353,9 @@ private:
     BDim<B> bx;
     BDim<B> by;
     int bxy_size;
+    const static int NO_NAN_MARKER = -1;
+    const static R NAN_MARKER = BB - 1;
+    int nanmarker;
     const T* const in;
     T* const out;
 };

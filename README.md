@@ -76,6 +76,16 @@ Running time (block size B = 256):
 Details
 -------
 
+### Missing values
+
+Missing values (NaNs) are treated as missing values. For
+example, the median of [x, y, NaN, z] is the same as the
+median of [x, y, z]. In the output, there is a NaN if and
+only if the entire window is empty (only NaNs).
+
+
+### Boundaries
+
 Boundaries are handled by clipping the sliding window to
 image boundaries. For example, while middle parts of the output
 will be medians of (2r+1) x (2r+1) boxes, the corners of the
@@ -86,8 +96,13 @@ of pixels, and hence the median is unique. Near the boundaries
 we may have an even number of pixels in the window; in those
 cases we will output the average of the two middle values.
 
+
+### Limits
+
 The maximum radius is currently 100 (i.e., the maximum window
 size is 201x201).
+
+The maximum total image size is currently 2^31 pixels.
 
 
 Compiling

@@ -30,11 +30,11 @@ inline int findnth64(uint64_t x, int n) {
 }
 
 
-// Data structure for the sliding window within a B*B block.
+// Data structure for the sliding window within
+// a block of size BB.
 
-template <int B>
+template <int BB>
 struct Window {
-    const static int BB = B * B;
     const static int BB64 = BB / 64;
 
     inline void clear()
@@ -97,9 +97,9 @@ struct Window {
     }
 
 private:
-    // A vector with B*B bits that keeps track of the contents of the
+    // A vector with BB bits that keeps track of the contents of the
     // sliding window. The elements of the block are sorted and
-    // numbered with integers [0,B*B). Bit number s is on iff element
+    // numbered with integers [0,BB). Bit number s is on iff element
     // s is inside the window.
     uint64_t buf[BB64];
     // count[i] = popcount(buf[i])
@@ -346,10 +346,10 @@ private:
         out[coord(x, y)] = value;
     }
 
-    const static int BB = Window<B>::BB;
+    const static int BB = B*B;
     std::pair<T,R> sorted[BB];
     R rank[BB];
-    Window<B> window;
+    Window<BB> window;
     BDim<B> bx;
     BDim<B> by;
     int bxy_size;

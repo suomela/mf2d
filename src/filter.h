@@ -14,6 +14,11 @@
 // in[j*x + i] and out[j*x + i].
 
 template <typename T>
-void median_filter(int x, int y, int hx, int hy, int blockhint, const T* in, T* out);
+void median_filter_2d(int x, int y, int hx, int hy, int blockhint, const T* in, T* out);
+
+// As above, for the special case y = 1, hy = 0.
+
+template <typename T>
+void median_filter_1d(int x, int hx, int blockhint, const T* in, T* out);
 
 #endif

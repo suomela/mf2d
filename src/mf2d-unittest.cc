@@ -5,14 +5,25 @@
 #include "filter.h"
 
 template <typename T>
-static void check(int x, int y, int hx, int hy, const T* in, T* out, const T* expected) {
-    median_filter<T>(x, y, hx, hy, 0, in, out);
-    for (int i = 0; i < x*y; ++i) {
+static void compare(int l, const T* out, const T* expected) {
+    for (int i = 0; i < l; ++i) {
         if (!(out[i] == expected[i] || (std::isnan(out[i]) && std::isnan(expected[i])))) {
             std::cerr << "mismatch: " << i << ": " << out[i] << " vs. " << expected[i] << "\n";
             std::exit(EXIT_FAILURE);
         }
     }
+}
+
+template <typename T>
+static void check_1d(int x, int hx, const T* in, T* out, const T* expected) {
+    median_filter_1d<T>(x, hx, 0, in, out);
+    compare(x, out, expected);
+}
+
+template <typename T>
+static void check_2d(int x, int y, int hx, int hy, const T* in, T* out, const T* expected) {
+    median_filter_2d<T>(x, y, hx, hy, 0, in, out);
+    compare(x * y, out, expected);
 }
 
 template <typename T>
@@ -22,23 +33,23 @@ static void test0() {
     T X = std::numeric_limits<T>::quiet_NaN();
     T in[x * y] = {0};
     T out[x * y];
-    check(x, y, 0, 0, in, out, in);
-    check(x, y, 1, 1, in, out, in);
-    check(x, y, 100, 0, in, out, in);
-    check(x, y, 0, 100, in, out, in);
-    check(x, y, 100, 100, in, out, in);
+    check_2d(x, y, 0, 0, in, out, in);
+    check_2d(x, y, 1, 1, in, out, in);
+    check_2d(x, y, 100, 0, in, out, in);
+    check_2d(x, y, 0, 100, in, out, in);
+    check_2d(x, y, 100, 100, in, out, in);
     in[0] = 1;
-    check(x, y, 0, 0, in, out, in);
-    check(x, y, 1, 1, in, out, in);
-    check(x, y, 100, 0, in, out, in);
-    check(x, y, 0, 100, in, out, in);
-    check(x, y, 100, 100, in, out, in);
+    check_2d(x, y, 0, 0, in, out, in);
+    check_2d(x, y, 1, 1, in, out, in);
+    check_2d(x, y, 100, 0, in, out, in);
+    check_2d(x, y, 0, 100, in, out, in);
+    check_2d(x, y, 100, 100, in, out, in);
     in[0] = X;
-    check(x, y, 0, 0, in, out, in);
-    check(x, y, 1, 1, in, out, in);
-    check(x, y, 100, 0, in, out, in);
-    check(x, y, 0, 100, in, out, in);
-    check(x, y, 100, 100, in, out, in);
+    check_2d(x, y, 0, 0, in, out, in);
+    check_2d(x, y, 1, 1, in, out, in);
+    check_2d(x, y, 100, 0, in, out, in);
+    check_2d(x, y, 0, 100, in, out, in);
+    check_2d(x, y, 100, 100, in, out, in);
 }
 
 
@@ -125,34 +136,36 @@ static void test1() {
         0,0,0,1,1,1,0,0,0,0
     };
     T out[x * y];
-    check(x, y, 0, 0, in, out, in);
-    check(x, y, 0, 1, in, out, exp01);
-    check(x, y, 0, 2, in, out, exp11);
-    check(x, y, 0, 3, in, out, exp11);
-    check(x, y, 0, 4, in, out, exp11);
-    check(x, y, 0,99, in, out, exp11);
-    check(x, y, 1, 0, in, out, exp10);
-    check(x, y, 2, 0, in, out, exp20);
-    check(x, y, 3, 0, in, out, exp30);
-    check(x, y, 4, 0, in, out, exp40);
-    check(x, y, 5, 0, in, out, exp50);
-    check(x, y, 8, 0, in, out, zero);
-    check(x, y,99, 0, in, out, zero);
-    check(x, y, 1, 1, in, out, exp11);
-    check(x, y, 2, 2, in, out, exp11);
-    check(x, y, 4, 4, in, out, zero);
-    check(x*y, 1, 1, 0, in, out, exp1);
-    check(x*y, 1, 1, 1, in, out, exp1);
-    check(x*y, 1, 1,99, in, out, exp1);
-    check(x*y, 1, 2, 0, in, out, exp2);
-    check(x*y, 1, 2, 1, in, out, exp2);
-    check(x*y, 1, 2,99, in, out, exp2);
-    check(1, x*y, 0, 1, in, out, exp1);
-    check(1, x*y, 1, 1, in, out, exp1);
-    check(1, x*y,99, 1, in, out, exp1);
-    check(1, x*y, 0, 2, in, out, exp2);
-    check(1, x*y, 1, 2, in, out, exp2);
-    check(1, x*y,99, 2, in, out, exp2);
+    check_2d(x, y, 0, 0, in, out, in);
+    check_2d(x, y, 0, 1, in, out, exp01);
+    check_2d(x, y, 0, 2, in, out, exp11);
+    check_2d(x, y, 0, 3, in, out, exp11);
+    check_2d(x, y, 0, 4, in, out, exp11);
+    check_2d(x, y, 0,99, in, out, exp11);
+    check_2d(x, y, 1, 0, in, out, exp10);
+    check_2d(x, y, 2, 0, in, out, exp20);
+    check_2d(x, y, 3, 0, in, out, exp30);
+    check_2d(x, y, 4, 0, in, out, exp40);
+    check_2d(x, y, 5, 0, in, out, exp50);
+    check_2d(x, y, 8, 0, in, out, zero);
+    check_2d(x, y,99, 0, in, out, zero);
+    check_2d(x, y, 1, 1, in, out, exp11);
+    check_2d(x, y, 2, 2, in, out, exp11);
+    check_2d(x, y, 4, 4, in, out, zero);
+    check_2d(x*y, 1, 1, 0, in, out, exp1);
+    check_2d(x*y, 1, 1, 1, in, out, exp1);
+    check_2d(x*y, 1, 1,99, in, out, exp1);
+    check_2d(x*y, 1, 2, 0, in, out, exp2);
+    check_2d(x*y, 1, 2, 1, in, out, exp2);
+    check_2d(x*y, 1, 2,99, in, out, exp2);
+    check_2d(1, x*y, 0, 1, in, out, exp1);
+    check_2d(1, x*y, 1, 1, in, out, exp1);
+    check_2d(1, x*y,99, 1, in, out, exp1);
+    check_2d(1, x*y, 0, 2, in, out, exp2);
+    check_2d(1, x*y, 1, 2, in, out, exp2);
+    check_2d(1, x*y,99, 2, in, out, exp2);
+    check_1d(x*y, 1, in, out, exp1);
+    check_1d(x*y, 2, in, out, exp2);
 }
 
 template <typename T>
@@ -204,22 +217,24 @@ static void test2() {
         0,0,0,1,1,1,0,0,0,0
     };
     T out[x * y];
-    check(x, y, 0, 0, in, out, in);
-    check(x, y, 0, 1, in, out, exp01);
-    check(x, y, 1, 0, in, out, exp10);
-    check(x, y, 1, 1, in, out, exp11);
-    check(x*y, 1, 1, 0, in, out, exp1);
-    check(x*y, 1, 1, 1, in, out, exp1);
-    check(x*y, 1, 1,99, in, out, exp1);
-    check(x*y, 1, 2, 0, in, out, exp2);
-    check(x*y, 1, 2, 1, in, out, exp2);
-    check(x*y, 1, 2,99, in, out, exp2);
-    check(1, x*y, 0, 1, in, out, exp1);
-    check(1, x*y, 1, 1, in, out, exp1);
-    check(1, x*y,99, 1, in, out, exp1);
-    check(1, x*y, 0, 2, in, out, exp2);
-    check(1, x*y, 1, 2, in, out, exp2);
-    check(1, x*y,99, 2, in, out, exp2);
+    check_2d(x, y, 0, 0, in, out, in);
+    check_2d(x, y, 0, 1, in, out, exp01);
+    check_2d(x, y, 1, 0, in, out, exp10);
+    check_2d(x, y, 1, 1, in, out, exp11);
+    check_2d(x*y, 1, 1, 0, in, out, exp1);
+    check_2d(x*y, 1, 1, 1, in, out, exp1);
+    check_2d(x*y, 1, 1,99, in, out, exp1);
+    check_2d(x*y, 1, 2, 0, in, out, exp2);
+    check_2d(x*y, 1, 2, 1, in, out, exp2);
+    check_2d(x*y, 1, 2,99, in, out, exp2);
+    check_2d(1, x*y, 0, 1, in, out, exp1);
+    check_2d(1, x*y, 1, 1, in, out, exp1);
+    check_2d(1, x*y,99, 1, in, out, exp1);
+    check_2d(1, x*y, 0, 2, in, out, exp2);
+    check_2d(1, x*y, 1, 2, in, out, exp2);
+    check_2d(1, x*y,99, 2, in, out, exp2);
+    check_1d(x*y, 1, in, out, exp1);
+    check_1d(x*y, 2, in, out, exp2);
 }
 
 template <typename T>
@@ -264,11 +279,11 @@ static void test3() {
         0,0,0,1,1,1,0,0,0,0
     };
     T out[x * y];
-    check(x, y, 0, 0, in, out, in);
-    check(x, y, 0, 1, in, out, exp01);
-    check(x, y, 1, 0, in, out, exp10);
-    check(x, y, 1, 1, in, out, exp11);
-    check(x, y, 2, 2, in, out, exp22);
+    check_2d(x, y, 0, 0, in, out, in);
+    check_2d(x, y, 0, 1, in, out, exp01);
+    check_2d(x, y, 1, 0, in, out, exp10);
+    check_2d(x, y, 1, 1, in, out, exp11);
+    check_2d(x, y, 2, 2, in, out, exp22);
 }
 
 template <typename T>

@@ -383,7 +383,7 @@ void median_filter_impl(int x, int y, int hx, int hy, const T* in, T* out) {
 
 
 template <typename T>
-void median_filter(int x, int y, int hx, int hy, int blockhint, const T* in, T* out) {
+void median_filter_2d(int x, int y, int hx, int hy, int blockhint, const T* in, T* out) {
     int h = std::max(hx, hy);
     if (h > MAX_H) {
         throw std::invalid_argument("window too large");
@@ -413,9 +413,14 @@ void median_filter(int x, int y, int hx, int hy, int blockhint, const T* in, T* 
     }
 }
 
-template void median_filter<float>(int x, int y, int hx, int hy, int blockhint, const float* in, float* out);
-template void median_filter<double>(int x, int y, int hx, int hy, int blockhint, const double* in, double* out);
-
 template <typename T>
-void median_filter(int x, int y, int hx, int hy, const T* in, T* out);
+void median_filter_1d(int x, int hx, int blockhint, const T* in, T* out) {
+    median_filter_2d<T>(x, 1, hx, 0, blockhint, in, out);
+}
+
+template void median_filter_2d<float>(int x, int y, int hx, int hy, int blockhint, const float* in, float* out);
+template void median_filter_2d<double>(int x, int y, int hx, int hy, int blockhint, const double* in, double* out);
+
+template void median_filter_1d<float>(int x, int hx, int blockhint, const float* in, float* out);
+template void median_filter_1d<double>(int x, int hx, int blockhint, const double* in, double* out);
 

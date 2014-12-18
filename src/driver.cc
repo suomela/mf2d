@@ -9,7 +9,7 @@
 
 template <typename T>
 void Driver<T>::process() {
-    median_filter<T>(in.x, in.y, settings.h, settings.h, 0, in.p, out.p);
+    median_filter_2d<T>(in.x, in.y, settings.h, settings.h, 0, in.p, out.p);
     write_image(settings.target_med, out);
     for (int i = 0; i < out.size(); ++i) {
         out.p[i] = in.p[i] - out.p[i];
@@ -30,7 +30,7 @@ void Driver<T>::benchmark() {
                 std::cout << "\t-" << std::flush;
             } else {
                 Timer timer;
-                median_filter<T>(in.x, in.y, h, h, block, in.p, out.p);
+                median_filter_2d<T>(in.x, in.y, h, h, block, in.p, out.p);
                 double t = timer.peek();
                 std::cout << "\t" << t << std::flush;
                 if (prev) {

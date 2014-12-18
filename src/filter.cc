@@ -246,6 +246,72 @@ struct BDim {
 };
 
 
+template <typename T, typename R, int BB>
+struct WindowRank {
+    void init_start() {
+        nanmarker = NO_NAN_MARKER;
+        size = 0;
+    }
+
+    inline void init_feed(T value, R slot) {
+        if (std::isnan(value)) {
+            nanmarker = NAN_MARKER;
+            rank[slot] = NAN_MARKER;
+        } else {
+            sorted[size] = std::make_pair(value, slot);
+            ++size;
+        }
+    }
+
+    void init_finish() {
+        std::sort(sorted, sorted + size);
+        for (int i = 0; i < size; ++i) {
+            rank[sorted[i].second] = static_cast<R>(i);
+        }
+    }
+
+    inline void clear() {
+        window.clear();
+    }
+
+    inline void update(int op, int slot) {
+        int s = rank[slot];
+        if (s != nanmarker) {
+            window.update(op, s);
+        }
+    }
+
+    inline T get_med() {
+        if (window.empty()) {
+            return std::numeric_limits<T>::quiet_NaN();
+        } else {
+            window.fix();
+            int med1 = window.med();
+            T value = sorted[med1].first;
+            if (window.even()) {
+                window.update(-1, med1);
+                window.fix();
+                assert(!window.even());
+                int med2 = window.med();
+                window.update(+1, med1);
+                assert(med2 > med1);
+                value += sorted[med2].first;
+                value /= 2;
+            }
+            return value;
+        }
+    }
+
+    std::pair<T,R> sorted[BB];
+    R rank[BB];
+    Window<BB> window;
+    const static int NO_NAN_MARKER = -1;
+    const static R NAN_MARKER = BB - 1;
+    int size;
+    int nanmarker;
+};
+
+
 // MedCalc2D.run(i,j) calculates medians for block (i,j).
 
 template <typename T, typename R, int B>
@@ -259,51 +325,32 @@ public:
     {
         bx.set(bx_);
         by.set(by_);
-        bxy_size = by.size * bx.size;
         calc_rank();
-#ifdef NAIVE
-        medians_naive();
-#else
         medians();
-#endif
     }
 
 private:
     void calc_rank() {
-        nanmarker = NO_NAN_MARKER;
-        int numcount = 0;
+        wr.init_start();
         for (int y = 0; y < by.size; ++y) {
             for (int x = 0; x < bx.size; ++x) {
-                T value = get_pixel(x, y);
-                R slot = pack(x, y);
-                if (std::isnan(value)) {
-                    nanmarker = NAN_MARKER;
-                    rank[slot] = NAN_MARKER;
-                } else {
-                    sorted[numcount] = std::make_pair(value, slot);
-                    ++numcount;
-                }
+                wr.init_feed(get_pixel(x, y), pack(x, y));
             }
         }
-        std::sort(sorted, sorted + numcount);
-        for (int i = 0; i < numcount; ++i) {
-            rank[sorted[i].second] = static_cast<R>(i);
-        }
+        wr.init_finish();
     }
 
-    // Simple baseline implementation for testing
-    void medians_naive() {
+    void medians() {
+#ifdef NAIVE
         for (int y = by.b0; y < by.b1; ++y) {
             for (int x = bx.b0; x < bx.b1; ++x) {
-                window.clear();
+                wr.clear();
                 update_block(+1, bx.w0(x), bx.w1(x), by.w0(y), by.w1(y));
                 set_med(x, y);
             }
         }
-    }
-
-    void medians() {
-        window.clear();
+#else
+        wr.clear();
         int x = bx.b0;
         int y = by.b0;
         update_block(+1, bx.w0(x), bx.w1(x), by.w0(y), by.w1(y));
@@ -342,38 +389,19 @@ private:
             }
             set_med(x, y);
         }
+#endif
     }
 
     inline void update_block(int op, int x0, int x1, int y0, int y1) {
         for (int y = y0; y < y1; ++y) {
             for (int x = x0; x < x1; ++x) {
-                int s = rank[pack(x, y)];
-                if (s != nanmarker) {
-                    window.update(op, s);
-                }
+                wr.update(op, pack(x, y));
             }
         }
     }
 
     inline void set_med(int x, int y) {
-        if (window.empty()) {
-            set_pixel(x, y, std::numeric_limits<T>::quiet_NaN());
-        } else {
-            window.fix();
-            int med1 = window.med();
-            T value = sorted[med1].first;
-            if (window.even()) {
-                window.update(-1, med1);
-                window.fix();
-                assert(!window.even());
-                int med2 = window.med();
-                window.update(+1, med1);
-                assert(med2 > med1);
-                value += sorted[med2].first;
-                value /= 2;
-            }
-            set_pixel(x, y, value);
-        }
+        set_pixel(x, y, wr.get_med());
     }
 
     inline R pack(int x, int y) const {
@@ -392,16 +420,9 @@ private:
         out[coord(x, y)] = value;
     }
 
-    const static int BB = B*B;
-    std::pair<T,R> sorted[BB];
-    R rank[BB];
-    Window<BB> window;
+    WindowRank<T,R,B*B> wr;
     BDim<B> bx;
     BDim<B> by;
-    int bxy_size;
-    const static int NO_NAN_MARKER = -1;
-    const static R NAN_MARKER = BB - 1;
-    int nanmarker;
     const T* const in;
     T* const out;
 };
@@ -419,45 +440,27 @@ public:
     {
         bx.set(bx_);
         calc_rank();
-#ifdef NAIVE
-        medians_naive();
-#else
         medians();
-#endif
     }
 
 private:
     void calc_rank() {
-        nanmarker = NO_NAN_MARKER;
-        int numcount = 0;
+        wr.init_start();
         for (int x = 0; x < bx.size; ++x) {
-            T value = get_pixel(x);
-            R slot = pack(x);
-            if (std::isnan(value)) {
-                nanmarker = NAN_MARKER;
-                rank[slot] = NAN_MARKER;
-            } else {
-                sorted[numcount] = std::make_pair(value, slot);
-                ++numcount;
-            }
+            wr.init_feed(get_pixel(x), pack(x));
         }
-        std::sort(sorted, sorted + numcount);
-        for (int i = 0; i < numcount; ++i) {
-            rank[sorted[i].second] = static_cast<R>(i);
-        }
-    }
-
-    // Simple baseline implementation for testing
-    void medians_naive() {
-        for (int x = bx.b0; x < bx.b1; ++x) {
-            window.clear();
-            update_block(+1, bx.w0(x), bx.w1(x));
-            set_med(x);
-        }
+        wr.init_finish();
     }
 
     void medians() {
-        window.clear();
+#ifdef NAIVE
+        for (int x = bx.b0; x < bx.b1; ++x) {
+            wr.clear();
+            update_block(+1, bx.w0(x), bx.w1(x));
+            set_med(x);
+        }
+#else
+        wr.clear();
         int x = bx.b0;
         update_block(+1, bx.w0(x), bx.w1(x));
         set_med(x);
@@ -467,36 +470,17 @@ private:
             update_block(+1, bx.w1(x-1), bx.w1(x));
             set_med(x);
         }
+#endif
     }
 
     inline void update_block(int op, int x0, int x1) {
         for (int x = x0; x < x1; ++x) {
-            int s = rank[pack(x)];
-            if (s != nanmarker) {
-                window.update(op, s);
-            }
+            wr.update(op, pack(x));
         }
     }
 
     inline void set_med(int x) {
-        if (window.empty()) {
-            set_pixel(x, std::numeric_limits<T>::quiet_NaN());
-        } else {
-            window.fix();
-            int med1 = window.med();
-            T value = sorted[med1].first;
-            if (window.even()) {
-                window.update(-1, med1);
-                window.fix();
-                assert(!window.even());
-                int med2 = window.med();
-                window.update(+1, med1);
-                assert(med2 > med1);
-                value += sorted[med2].first;
-                value /= 2;
-            }
-            set_pixel(x, value);
-        }
+        set_pixel(x, wr.get_med());
     }
 
     inline R pack(int x) const {
@@ -515,14 +499,8 @@ private:
         out[coord(x)] = value;
     }
 
-    std::pair<T,R> sorted[B];
-    R rank[B];
-    Window<B> window;
+    WindowRank<T,R,B> wr;
     BDim<B> bx;
-    int bxy_size;
-    const static int NO_NAN_MARKER = -1;
-    const static R NAN_MARKER = B - 1;
-    int nanmarker;
     const T* const in;
     T* const out;
 };

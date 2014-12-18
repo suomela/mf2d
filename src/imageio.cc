@@ -27,7 +27,21 @@ static void fcheck(int s) {
 }
 
 
-static void verify_dim_2d(const long* naxes) {
+template <typename T>
+static void read_image_data(fitsfile* f, T* data, int size) {
+    int s = 0;
+    T nulval = std::numeric_limits<T>::quiet_NaN();
+    int anynul = 0;
+    fcheck(fits_read_img(f, get_fits_type<T>(), 1, size, &nulval, data, &anynul, &s));
+    fcheck(fits_close_file(f, &s));
+}
+
+
+template <typename T>
+static Image2D<T> read_image_data_2d(fitsfile* f) {
+    int s = 0;
+    long naxes[2] = {0,0};
+    fcheck(fits_get_img_size(f, 2, naxes, &s));
     int64_t x = naxes[0];
     int64_t y = naxes[1];
     if (x < 1 || y < 1) {
@@ -40,11 +54,19 @@ static void verify_dim_2d(const long* naxes) {
             << x << "x" << y << " too large" << std::endl;
         std::exit(EXIT_FAILURE);
     }
+    Image2D<T> img(static_cast<int>(x), static_cast<int>(y));
+    img.alloc();
+    read_image_data<T>(f, img.p, img.size());
+    return img;
 }
 
 
-static void verify_dim_1d(const long* naxes) {
-    int64_t x = naxes[0];
+template <typename T>
+static Image1D<T> read_image_data_1d(fitsfile* f) {
+    int s = 0;
+    long naxes[1] = {0};
+    fcheck(fits_get_img_size(f, 1, naxes, &s));
+    long x = naxes[0];
     if (x < 1) {
         std::cerr << "image dimension "
             << x << " too small" << std::endl;
@@ -55,40 +77,9 @@ static void verify_dim_1d(const long* naxes) {
             << x << " too large" << std::endl;
         std::exit(EXIT_FAILURE);
     }
-}
-
-
-template <typename T>
-static Image2D<T> read_image_data_2d(const char* filename, fitsfile* f) {
-    int s = 0;
-    long naxes[2] = {0,0};
-    fcheck(fits_get_img_size(f, 2, naxes, &s));
-    verify_dim_2d(naxes);
-    int x = static_cast<int>(naxes[0]);
-    int y = static_cast<int>(naxes[1]);
-    Image2D<T> img(x, y);
-    T nulval = std::numeric_limits<T>::quiet_NaN();
-    int anynul = 0;
+    Image1D<T> img(static_cast<int>(x));
     img.alloc();
-    fcheck(fits_read_img(f, get_fits_type<T>(), 1, img.size(), &nulval, img.p, &anynul, &s));
-    fcheck(fits_close_file(f, &s));
-    return img;
-}
-
-
-template <typename T>
-static Image1D<T> read_image_data_1d(const char* filename, fitsfile* f) {
-    int s = 0;
-    long naxes[2] = {0};
-    fcheck(fits_get_img_size(f, 1, naxes, &s));
-    verify_dim_1d(naxes);
-    int x = static_cast<int>(naxes[0]);
-    Image1D<T> img(x);
-    T nulval = std::numeric_limits<T>::quiet_NaN();
-    int anynul = 0;
-    img.alloc();
-    fcheck(fits_read_img(f, get_fits_type<T>(), 1, img.size(), &nulval, img.p, &anynul, &s));
-    fcheck(fits_close_file(f, &s));
+    read_image_data<T>(f, img.p, img.size());
     return img;
 }
 
@@ -116,15 +107,15 @@ static fitsfile* open_image_for_reading(const char* filename) {
 
 
 template <typename T>
-static VDriver* from_image_helper(const char* filename, fitsfile* f) {
+static VDriver* from_image_helper(fitsfile* f) {
     int s = 0;
     int naxis = 0;
     fcheck(fits_get_img_dim(f, &naxis, &s));
     if (naxis == 1) {
-        Image1D<T> img = read_image_data_1d<T>(filename, f);
+        Image1D<T> img = read_image_data_1d<T>(f);
         return new Driver<T,Image1D<T> >(img);
     } else if (naxis == 2) {
-        Image2D<T> img = read_image_data_2d<T>(filename, f);
+        Image2D<T> img = read_image_data_2d<T>(f);
         return new Driver<T,Image2D<T> >(img);
     } else {
         std::cerr << "expected 1-dimensional or 2-dimensional data, got "
@@ -140,9 +131,9 @@ VDriver* from_image(const char* filename) {
     int bitpix = 0;
     fcheck(fits_get_img_type(f, &bitpix, &s));
     if (bitpix == get_fits_bitpix<float>()) {
-        return from_image_helper<float>(filename, f);
+        return from_image_helper<float>(f);
     } else if (bitpix == get_fits_bitpix<double>()) {
-        return from_image_helper<double>(filename, f);
+        return from_image_helper<double>(f);
     } else {
         std::cerr << "unexpected data type: ";
         if (bitpix < 0) {
@@ -157,30 +148,31 @@ VDriver* from_image(const char* filename) {
 
 
 template <typename T>
-void write_image(const char* filename, Image2D<T> img)
+void write_image_helper(const char* filename, T* data, int size, int naxis, long *naxes)
 {
     fitsfile* f = NULL;
     int s = 0;
     fcheck(fits_create_file(&f, filename, &s));
-    long naxes[2] = {img.x, img.y};
-    fcheck(fits_create_img(f, get_fits_bitpix<T>(), 2, naxes, &s));
+    fcheck(fits_create_img(f, get_fits_bitpix<T>(), naxis, naxes, &s));
     T nulval = std::numeric_limits<T>::quiet_NaN();
-    fcheck(fits_write_imgnull(f, get_fits_type<T>(), 1, img.size(), img.p, &nulval, &s));
+    fcheck(fits_write_imgnull(f, get_fits_type<T>(), 1, size, data, &nulval, &s));
     fcheck(fits_close_file(f, &s));
+}
+
+
+template <typename T>
+void write_image(const char* filename, Image2D<T> img)
+{
+    long naxes[2] = {img.x, img.y};
+    write_image_helper(filename, img.p, img.size(), 2, naxes);
 }
 
 
 template <typename T>
 void write_image(const char* filename, Image1D<T> img)
 {
-    fitsfile* f = NULL;
-    int s = 0;
-    fcheck(fits_create_file(&f, filename, &s));
     long naxes[1] = {img.x};
-    fcheck(fits_create_img(f, get_fits_bitpix<T>(), 1, naxes, &s));
-    T nulval = std::numeric_limits<T>::quiet_NaN();
-    fcheck(fits_write_imgnull(f, get_fits_type<T>(), 1, img.size(), img.p, &nulval, &s));
-    fcheck(fits_close_file(f, &s));
+    write_image_helper(filename, img.p, img.size(), 1, naxes);
 }
 
 

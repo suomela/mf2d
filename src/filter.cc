@@ -113,6 +113,52 @@ private:
 };
 
 
+template <>
+struct Window<64> {
+    const static int BB = 64;
+
+    inline void clear()
+    {
+        buf = 0;
+        count = 0;
+    }
+
+    inline void update(int op, int s) {
+        assert(op == -1 || op == +1);
+        if (op == +1) {
+            assert(!(buf & (ONE64 << s)));
+        } else {
+            assert(buf & (ONE64 << s));
+        }
+        buf ^= (ONE64 << s);
+        count += op;
+    }
+
+    inline void fix() {}
+
+    inline int size() const {
+        return count;
+    }
+
+    inline bool empty() const {
+        return size() == 0;
+    }
+
+    inline bool even() const {
+        return (size() & 1) == 0;
+    }
+
+    inline int med() const {
+        int n = (count - 1) / 2;
+        return findnth64(buf, n);
+    }
+
+private:
+    uint64_t buf;
+    int count;
+};
+
+
 // Grid dimensions.
 
 template <int B>

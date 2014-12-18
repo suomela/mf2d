@@ -53,17 +53,12 @@ struct Image1D {
 };
 
 
-struct Settings {
-    int h; // Half-window size
-    const char* source;
-    const char* target_med;
-    const char* target_diff;
-};
-
-
 class VDriver {
 public:
-    virtual void process() = 0;
+    virtual int max_h() = 0;
+    virtual void process(int h) = 0;
+    virtual void diff() = 0;
+    virtual void write(const char* filename) = 0;
     virtual void benchmark() = 0;
     virtual ~VDriver() {}
 };
@@ -74,8 +69,7 @@ class Driver : public VDriver
 {
 public:
     // Driver will own img.p
-    Driver(Settings settings_, I img)
-        : settings(settings_), in(img)
+    Driver(I img) : in(img)
     {
         out.like(in);
         out.alloc();
@@ -86,11 +80,13 @@ public:
         delete out.p;
     }
 
-    void process();
+    int max_h();
+    void process(int h);
+    void diff();
+    void write(const char* filename);
     void benchmark();
 
 private:
-    const Settings settings;
     I in;
     I out;
 };

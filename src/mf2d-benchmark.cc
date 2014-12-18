@@ -8,12 +8,8 @@ int main(int argc, const char** argv) {
         std::cerr << "usage: " << argv[0] << " input" << std::endl;
         std::exit(EXIT_FAILURE);
     }
-    Settings settings;
-    settings.h = 0;
-    settings.source = argv[1];
-    settings.target_med = NULL;
-    settings.target_diff = NULL;
-    VDriver* driver = from_image(settings);
+    const char* source = argv[1];
+    VDriver* driver = from_image(source);
     driver->benchmark();
     delete driver;
 }

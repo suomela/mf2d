@@ -116,16 +116,16 @@ static fitsfile* open_image_for_reading(const char* filename) {
 
 
 template <typename T>
-static VDriver* from_image_helper(Settings settings, fitsfile* f) {
+static VDriver* from_image_helper(const char* filename, fitsfile* f) {
     int s = 0;
     int naxis = 0;
     fcheck(fits_get_img_dim(f, &naxis, &s));
     if (naxis == 1) {
-        Image1D<T> img = read_image_data_1d<T>(settings.source, f);
-        return new Driver<T,Image1D<T> >(settings, img);
+        Image1D<T> img = read_image_data_1d<T>(filename, f);
+        return new Driver<T,Image1D<T> >(img);
     } else if (naxis == 2) {
-        Image2D<T> img = read_image_data_2d<T>(settings.source, f);
-        return new Driver<T,Image2D<T> >(settings, img);
+        Image2D<T> img = read_image_data_2d<T>(filename, f);
+        return new Driver<T,Image2D<T> >(img);
     } else {
         std::cerr << "expected 1-dimensional or 2-dimensional data, got "
             << naxis << "-dimensional data" << std::endl;
@@ -134,15 +134,15 @@ static VDriver* from_image_helper(Settings settings, fitsfile* f) {
 }
 
 
-VDriver* from_image(Settings settings) {
-    fitsfile* f = open_image_for_reading(settings.source);
+VDriver* from_image(const char* filename) {
+    fitsfile* f = open_image_for_reading(filename);
     int s = 0;
     int bitpix = 0;
     fcheck(fits_get_img_type(f, &bitpix, &s));
     if (bitpix == get_fits_bitpix<float>()) {
-        return from_image_helper<float>(settings, f);
+        return from_image_helper<float>(filename, f);
     } else if (bitpix == get_fits_bitpix<double>()) {
-        return from_image_helper<double>(settings, f);
+        return from_image_helper<double>(filename, f);
     } else {
         std::cerr << "unexpected data type: ";
         if (bitpix < 0) {

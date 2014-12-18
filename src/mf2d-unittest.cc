@@ -16,6 +16,33 @@ static void check(int x, int y, int hx, int hy, const T* in, T* out, const T* ex
 }
 
 template <typename T>
+static void test0() {
+    const int x = 1;
+    const int y = 1;
+    T X = std::numeric_limits<T>::quiet_NaN();
+    T in[x * y] = {0};
+    T out[x * y];
+    check(x, y, 0, 0, in, out, in);
+    check(x, y, 1, 1, in, out, in);
+    check(x, y, 100, 0, in, out, in);
+    check(x, y, 0, 100, in, out, in);
+    check(x, y, 100, 100, in, out, in);
+    in[0] = 1;
+    check(x, y, 0, 0, in, out, in);
+    check(x, y, 1, 1, in, out, in);
+    check(x, y, 100, 0, in, out, in);
+    check(x, y, 0, 100, in, out, in);
+    check(x, y, 100, 100, in, out, in);
+    in[0] = X;
+    check(x, y, 0, 0, in, out, in);
+    check(x, y, 1, 1, in, out, in);
+    check(x, y, 100, 0, in, out, in);
+    check(x, y, 0, 100, in, out, in);
+    check(x, y, 100, 100, in, out, in);
+}
+
+
+template <typename T>
 static void test1() {
     const int x = 10;
     const int y = 5;
@@ -83,6 +110,20 @@ static void test1() {
         0,0,0,1,1,1,0,0,0,0,
         0,0,0,1,1,1,0,0,0,0
     };
+    T exp1[x * y] = {
+        0,0,0,1,1,1,0,0,0,0,
+        0,0,0,1,1,1,0,0,0,0,
+        0,0,0,1,1,0,0,0,0,0,
+        0,0,0,1,1,1,0,0,0,0,
+        0,0,0,1,1,1,0,0,0,0
+    };
+    T exp2[x * y] = {
+        0,0,0,1,1,1,0,0,0,0,
+        0,0,0,1,1,1,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,
+        0,0,0,1,1,1,1,0,0,0,
+        0,0,0,1,1,1,0,0,0,0
+    };
     T out[x * y];
     check(x, y, 0, 0, in, out, in);
     check(x, y, 0, 1, in, out, exp01);
@@ -100,6 +141,18 @@ static void test1() {
     check(x, y, 1, 1, in, out, exp11);
     check(x, y, 2, 2, in, out, exp11);
     check(x, y, 4, 4, in, out, zero);
+    check(x*y, 1, 1, 0, in, out, exp1);
+    check(x*y, 1, 1, 1, in, out, exp1);
+    check(x*y, 1, 1,99, in, out, exp1);
+    check(x*y, 1, 2, 0, in, out, exp2);
+    check(x*y, 1, 2, 1, in, out, exp2);
+    check(x*y, 1, 2,99, in, out, exp2);
+    check(1, x*y, 0, 1, in, out, exp1);
+    check(1, x*y, 1, 1, in, out, exp1);
+    check(1, x*y,99, 1, in, out, exp1);
+    check(1, x*y, 0, 2, in, out, exp2);
+    check(1, x*y, 1, 2, in, out, exp2);
+    check(1, x*y,99, 2, in, out, exp2);
 }
 
 template <typename T>
@@ -136,11 +189,37 @@ static void test2() {
         0,0,0,1,1,1,0,0,0,0,
         0,0,0,1,1,1,0,0,0,0
     };
+    T exp1[x * y] = {
+        0,0,0,1,1,1,0,0,0,0,
+        0,0,0,1,1,1,0,0,0,0,
+        0,0,0,1,1,H,0,0,0,0,
+        0,0,0,1,1,1,0,0,0,0,
+        0,0,0,1,1,1,0,0,0,0
+    };
+    T exp2[x * y] = {
+        0,0,0,1,1,1,0,0,0,0,
+        0,0,0,1,1,1,0,0,0,0,
+        0,0,0,H,H,H,0,0,0,0,
+        0,0,0,1,1,1,1,0,0,0,
+        0,0,0,1,1,1,0,0,0,0
+    };
     T out[x * y];
     check(x, y, 0, 0, in, out, in);
     check(x, y, 0, 1, in, out, exp01);
     check(x, y, 1, 0, in, out, exp10);
     check(x, y, 1, 1, in, out, exp11);
+    check(x*y, 1, 1, 0, in, out, exp1);
+    check(x*y, 1, 1, 1, in, out, exp1);
+    check(x*y, 1, 1,99, in, out, exp1);
+    check(x*y, 1, 2, 0, in, out, exp2);
+    check(x*y, 1, 2, 1, in, out, exp2);
+    check(x*y, 1, 2,99, in, out, exp2);
+    check(1, x*y, 0, 1, in, out, exp1);
+    check(1, x*y, 1, 1, in, out, exp1);
+    check(1, x*y,99, 1, in, out, exp1);
+    check(1, x*y, 0, 2, in, out, exp2);
+    check(1, x*y, 1, 2, in, out, exp2);
+    check(1, x*y,99, 2, in, out, exp2);
 }
 
 template <typename T>
@@ -194,6 +273,7 @@ static void test3() {
 
 template <typename T>
 static void test() {
+    test0<T>();
     test1<T>();
     test2<T>();
     test3<T>();

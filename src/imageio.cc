@@ -57,8 +57,8 @@ static Image<T> read_image_data(const char* filename, fitsfile* f) {
     long naxes[2] = {0,0};
     fcheck(fits_get_img_size(f, 2, naxes, &s));
     verify_dim(naxes);
-    int x = static_cast<int>(naxes[1]);
-    int y = static_cast<int>(naxes[0]);
+    int x = static_cast<int>(naxes[0]);
+    int y = static_cast<int>(naxes[1]);
     Image<T> img(x, y);
     T nulval = std::numeric_limits<T>::quiet_NaN();
     int anynul = 0;
@@ -139,7 +139,7 @@ void write_image(const char* filename, Image<T> img)
     fitsfile* f = NULL;
     int s = 0;
     fcheck(fits_create_file(&f, filename, &s));
-    long naxes[2] = {img.y, img.x};
+    long naxes[2] = {img.x, img.y};
     fcheck(fits_create_img(f, get_fits_bitpix<T>(), 2, naxes, &s));
     T nulval = std::numeric_limits<T>::quiet_NaN();
     fcheck(fits_write_imgnull(f, get_fits_type<T>(), 1, img.x * img.y, img.p, &nulval, &s));

@@ -177,8 +177,8 @@ struct BDim {
     }
 
     inline void set(int i) {
-        bool is_first (i == 0);
-        bool is_last (i + 1 == dim.count);
+        bool is_first = (i == 0);
+        bool is_last = (i + 1 == dim.count);
         start = dim.step * i;
         int end;
         if (is_last) {

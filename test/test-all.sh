@@ -1,3 +1,3 @@
 #!/bin/bash
 
-exec test/test-any.sh build build-clang build-naive build-debug
+exec test/test-any.sh build/src build-debug/src build-opt/src

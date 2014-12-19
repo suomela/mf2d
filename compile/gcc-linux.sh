@@ -1,5 +1,8 @@
 #!/bin/bash
 
-mkdir -p bin tmp || exit 1
+set -x
+mkdir -p bin || exit 1
 cd src || exit 1
-exec g++ -Wall -Wno-array-bounds -march=native -O3 -fopenmp -DNDEBUG mf2d.cc driver.cc filter.cc imageio.cc -lcfitsio -o ../bin/mf2d
+${CXX:-g++} -Wall -Wno-array-bounds -march=native -O3 -fopenmp -DNDEBUG mf2d.cc driver.cc filter.cc imageio.cc -lcfitsio -o ../bin/mf2d || exit 1
+${CXX:-g++} -Wall -Wno-array-bounds -march=native -O3 -fopenmp -DNDEBUG mf2d-benchmark.cc driver.cc filter.cc imageio.cc -lcfitsio -o ../bin/mf2d-benchmark || exit 1
+${CXX:-g++} -Wall -Wno-array-bounds -march=native -O3 -fopenmp -DNDEBUG mf2d-unittest.cc driver.cc filter.cc imageio.cc -lcfitsio -o ../bin/mf2d-unittest || exit 1

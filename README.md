@@ -148,9 +148,13 @@ You can get GCC 4.9 from Homebrew:
 
     brew install gcc
 
+Set CXX to point to the right compiler:
+
+    export CXX=g++-4.9
+
 Compile:
 
-    compile/gcc-49-osx.sh
+    compile/gcc-osx.sh
 
 Test:
 

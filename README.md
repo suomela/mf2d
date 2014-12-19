@@ -60,15 +60,15 @@ Some examples of typical running times on my Macbook Air laptop
 
   - less than 0.2s in total:
 
-        build/mf2d 10 example/test-1.fits '!a.fits' '!b.fits'
+        bin/mf2d 10 example/test-1.fits '!a.fits' '!b.fits'
 
   - less than 0.4s in total:
 
-        build/mf2d 40 example/test-1.fits '!a.fits' '!b.fits'
+        bin/mf2d 40 example/test-1.fits '!a.fits' '!b.fits'
 
   - less than 0.7s in total:
 
-        build/mf2d 80 example/test-1.fits '!a.fits' '!b.fits'
+        bin/mf2d 80 example/test-1.fits '!a.fits' '!b.fits'
 
 The sample file is 1024x1024 pixels, 32-bit floats.
 

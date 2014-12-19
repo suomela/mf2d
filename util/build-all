@@ -1,0 +1,7 @@
+#!/bin/sh
+
+for a in build build-debug build-opt; do
+    cd "$a" && ninja && ninja test || exit 1
+    cd ..
+done
+exec test/test-any.sh build/src build-debug/src build-opt/src

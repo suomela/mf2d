@@ -9,17 +9,15 @@ int main(int argc, const char** argv) {
         std::exit(EXIT_FAILURE);
     }
     int h = atoi(argv[1]);
+    if (h < 0) {
+        std::cerr << "radius has to be at least 0" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
     const char* source = argv[2];
     const char* target_med = argv[3];
     const char* target_diff = argv[4];
 
     VDriver* driver = from_image(source);
-    int max_h = driver->max_h();
-    if (h < 0 || h > max_h) {
-        std::cerr << "for this image type, radius has to be between 0 and " << max_h << std::endl;
-        delete driver;
-        std::exit(EXIT_FAILURE);
-    }
     driver->process(h);
     driver->write(target_med);
     driver->diff();

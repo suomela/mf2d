@@ -30,22 +30,36 @@ inline int findnth64(uint64_t x, int n) {
 }
 
 
-// Data structure for the sliding window within
-// a block of size BB.
+// Data structure for the sliding window.
 
-template <int BB>
 struct Window {
-    const static int BB64 = BB / 64;
+    static const int WORDSIZE = 64;
+
+    static inline int get_words(int bb) {
+        assert(bb >= 1);
+        return (bb + WORDSIZE - 1) / WORDSIZE;
+    }
+
+    Window(int words_)
+        : words(words_),
+          buf(new uint64_t[words_]),
+          count(new int[words_])
+    {}
+
+    ~Window() {
+        delete[] buf;
+        delete[] count;
+    }
 
     inline void clear()
     {
-        for (int i = 0; i < BB64; ++i) {
+        for (int i = 0; i < words; ++i) {
             buf[i] = 0;
             count[i] = 0;
         }
         half[0] = 0;
         half[1] = 0;
-        p = BB64 / 2;
+        p = words / 2;
     }
 
     inline void update(int op, int s) {
@@ -97,15 +111,16 @@ struct Window {
     }
 
 private:
-    // A vector with BB bits that keeps track of the contents of the
-    // sliding window. The elements of the block are sorted and
-    // numbered with integers [0,BB). Bit number s is on iff element
+    int words;
+    // A vector with 64*words bits that keeps track of the contents
+    // of the sliding window. The elements of the block are sorted
+    // and numbered with integers. Bit number s is on iff element
     // s is inside the window.
-    uint64_t buf[BB64];
+    uint64_t *buf;
     // count[i] = popcount(buf[i])
-    int count[BB64];
+    int *count;
     // half[0] = count[0] + ... + count[p-1]
-    // half[1] = count[p] + ... + count[BB64-1]
+    // half[1] = count[p] + ... + count[words-1]
     int half[2];
     // The current guess is that the median is in buf[p].
     // The guess is corrected by calling "fix".
@@ -113,10 +128,7 @@ private:
 };
 
 
-template <>
-struct Window<64> {
-    const static int BB = 64;
-
+struct Window1 {
     inline void clear()
     {
         buf = 0;
@@ -161,15 +173,14 @@ private:
 
 // Grid dimensions.
 
-template <int B>
 struct Dim {
-    Dim(int size_, int h_)
+    Dim(int b_, int size_, int h_)
         : size(size_),
           h(h_),
-          step(calc_step(h_)),
-          count(calc_count(size_, h_))
+          step(calc_step(b_, h_)),
+          count(calc_count(b_, size_, h_))
     {
-        assert(2 * h + 1 < B);
+        assert(2 * h + 1 < b_);
         assert(count >= 1);
         assert(2 * h + count * step >= size);
         assert(2 * h + (count - 1) * step < size || count == 1);
@@ -181,16 +192,16 @@ struct Dim {
     const int count;
 
 private:
-    inline static int calc_step(int h) {
-        return B - 2*h;
+    inline static int calc_step(int b, int h) {
+        return b - 2*h;
     }
 
-    inline static int calc_count(int size, int h) {
-        if (size <= B) {
+    inline static int calc_count(int b, int size, int h) {
+        if (size <= b) {
             return 1;
         } else {
             int interior = size - 2 * h;
-            int step = calc_step(h);
+            int step = calc_step(b, h);
             return (interior + step - 1) / step;
         }
     }
@@ -199,9 +210,8 @@ private:
 
 // Slot i in the grid.
 
-template <int B>
 struct BDim {
-    BDim(Dim<B> dim_) : dim(dim_) {
+    BDim(Dim dim_) : dim(dim_) {
         set(0);
     }
 
@@ -237,8 +247,8 @@ struct BDim {
     // Block i is located at coordinates [start, end) in the image.
     // Within the block, median is needed for coordinates [b0, b1).
     // 0 <= start < end < dim.size
-    // 0 <= b0 < b1 < size <= B
-    const Dim<B> dim;
+    // 0 <= b0 < b1 < size <= dim.b
+    const Dim dim;
     int start;
     int size;
     int b0;
@@ -246,17 +256,34 @@ struct BDim {
 };
 
 
-template <typename T, typename R, int BB>
+template <typename T, typename R>
 struct WindowRank {
+    WindowRank(int bb_)
+        : sorted(new std::pair<T,R>[bb_]),
+          rank(new R[bb_]),
+          window(Window::get_words(bb_)),
+          bb(bb_)
+    {
+        assert(bb_ - 1 <= std::numeric_limits<R>::max());
+    }
+
+    ~WindowRank()
+    {
+        delete[] sorted;
+        delete[] rank;
+    }
+
     void init_start() {
-        nanmarker = NO_NAN_MARKER;
+        // value not confused with any real index
+        nanmarker = -1;
         size = 0;
     }
 
     inline void init_feed(T value, R slot) {
         if (std::isnan(value)) {
-            nanmarker = NAN_MARKER;
-            rank[slot] = NAN_MARKER;
+            // value that fits in type R
+            nanmarker = bb - 1;
+            rank[slot] = static_cast<R>(nanmarker);
         } else {
             sorted[size] = std::make_pair(value, slot);
             ++size;
@@ -302,11 +329,10 @@ struct WindowRank {
         }
     }
 
-    std::pair<T,R> sorted[BB];
-    R rank[BB];
-    Window<BB> window;
-    const static int NO_NAN_MARKER = -1;
-    const static R NAN_MARKER = BB - 1;
+    std::pair<T,R>* sorted;
+    R* rank;
+    Window window;
+    int bb;
     int size;
     int nanmarker;
 };
@@ -314,11 +340,11 @@ struct WindowRank {
 
 // MedCalc2D.run(i,j) calculates medians for block (i,j).
 
-template <typename T, typename R, int B>
+template <typename T, typename R>
 class MedCalc2D {
 public:
-    MedCalc2D(Dim<B> dimx_, Dim<B> dimy_, const T* in_, T* out_)
-        : bx(dimx_), by(dimy_), in(in_), out(out_)
+    MedCalc2D(int b_, Dim dimx_, Dim dimy_, const T* in_, T* out_)
+        : wr(b_ * b_), bx(dimx_), by(dimy_), in(in_), out(out_)
     {}
 
     void run(int bx_, int by_)
@@ -412,20 +438,20 @@ private:
         return (y + by.start) * bx.dim.size + (x + bx.start);
     }
 
-    WindowRank<T,R,B*B> wr;
-    BDim<B> bx;
-    BDim<B> by;
+    WindowRank<T,R> wr;
+    BDim bx;
+    BDim by;
     const T* const in;
     T* const out;
 };
 
 
 
-template <typename T, typename R, int B>
+template <typename T, typename R>
 class MedCalc1D {
 public:
-    MedCalc1D(Dim<B> dimx_, const T* in_, T* out_)
-        : bx(dimx_), in(in_), out(out_)
+    MedCalc1D(int b_, Dim dimx_, const T* in_, T* out_)
+        : wr(b_), bx(dimx_), in(in_), out(out_)
     {}
 
     void run(int bx_)
@@ -487,48 +513,46 @@ private:
         return x + bx.start;
     }
 
-    WindowRank<T,R,B> wr;
-    BDim<B> bx;
+    WindowRank<T,R> wr;
+    BDim bx;
     const T* const in;
     T* const out;
 };
 
 
-template <typename T, typename R, int B>
-void median_filter_impl_2d(int x, int y, int hx, int hy, const T* in, T* out) {
-    if (2 * hx + 1 > B || 2 * hy + 1 > B) {
+template <typename T, typename R>
+void median_filter_impl_2d(int x, int y, int hx, int hy, int b, const T* in, T* out) {
+    if (2 * hx + 1 > b || 2 * hy + 1 > b) {
         throw std::invalid_argument("window too large for this block size");
     }
-    Dim<B> dimx(x, hx);
-    Dim<B> dimy(y, hy);
+    Dim dimx(b, x, hx);
+    Dim dimy(b, y, hy);
     #pragma omp parallel
     {
-        MedCalc2D<T,R,B>* mc = new MedCalc2D<T,R,B>(dimx, dimy, in, out);
+        MedCalc2D<T,R> mc(b, dimx, dimy, in, out);
         #pragma omp for collapse(2)
         for (int by = 0; by < dimy.count; ++by) {
             for (int bx = 0; bx < dimx.count; ++bx) {
-                mc->run(bx, by);
+                mc.run(bx, by);
             }
         }
-        delete[] mc;
     }
 }
 
 
-template <typename T, typename R, int B>
-void median_filter_impl_1d(int x, int hx, const T* in, T* out) {
-    if (2 * hx + 1 > B) {
+template <typename T, typename R>
+void median_filter_impl_1d(int x, int hx, int b, const T* in, T* out) {
+    if (2 * hx + 1 > b) {
         throw std::invalid_argument("window too large for this block size");
     }
-    Dim<B> dimx(x, hx);
+    Dim dimx(b, x, hx);
     #pragma omp parallel
     {
-        MedCalc1D<T,R,B>* mc = new MedCalc1D<T,R,B>(dimx, in, out);
+        MedCalc1D<T,R> mc(b, dimx, in, out);
         #pragma omp for
         for (int bx = 0; bx < dimx.count; ++bx) {
-            mc->run(bx);
+            mc.run(bx);
         }
-        delete[] mc;
     }
 }
 
@@ -536,64 +560,25 @@ void median_filter_impl_1d(int x, int hx, const T* in, T* out) {
 template <typename T>
 void median_filter_2d(int x, int y, int hx, int hy, int blockhint, const T* in, T* out) {
     int h = std::max(hx, hy);
-    if (h > MAX_H_2D) {
-        throw std::invalid_argument("window too large");
-    }
     int blocksize = blockhint ? blockhint : choose_blocksize_2d(h);
-    switch (blocksize) {
-    case 16:
-        median_filter_impl_2d<T,uint8_t,16>(x, y, hx, hy, in, out);
-        break;
-    case 32:
-        median_filter_impl_2d<T,uint16_t,32>(x, y, hx, hy, in, out);
-        break;
-    case 64:
-        median_filter_impl_2d<T,uint16_t,64>(x, y, hx, hy, in, out);
-        break;
-    case 128:
-        median_filter_impl_2d<T,uint16_t,128>(x, y, hx, hy, in, out);
-        break;
-    case 256:
-        median_filter_impl_2d<T,uint16_t,256>(x, y, hx, hy, in, out);
-        break;
-    case 512:
-        median_filter_impl_2d<T,int,512>(x, y, hx, hy, in, out);
-        break;
-    default:
-        throw std::invalid_argument("unsupported block size");
+    if (blocksize <= 16) {
+        median_filter_impl_2d<T,uint8_t>(x, y, hx, hy, blocksize, in, out);
+    } else if (blocksize <= 256) {
+        median_filter_impl_2d<T,uint16_t>(x, y, hx, hy, blocksize, in, out);
+    } else {
+        median_filter_impl_2d<T,int>(x, y, hx, hy, blocksize, in, out);
     }
 }
 
 template <typename T>
 void median_filter_1d(int x, int hx, int blockhint, const T* in, T* out) {
-    if (hx > MAX_H_1D) {
-        throw std::invalid_argument("window too large");
-    }
     int blocksize = blockhint ? blockhint : choose_blocksize_1d(hx);
-    switch (blocksize) {
-    case 64:
-        median_filter_impl_1d<T,uint8_t,64>(x, hx, in, out);
-        break;
-    case 128:
-        median_filter_impl_1d<T,uint8_t,128>(x, hx, in, out);
-        break;
-    case 256:
-        median_filter_impl_1d<T,uint8_t,256>(x, hx, in, out);
-        break;
-    case 512:
-        median_filter_impl_1d<T,uint16_t,512>(x, hx, in, out);
-        break;
-    case 1024:
-        median_filter_impl_1d<T,uint16_t,1024>(x, hx, in, out);
-        break;
-    case 2048:
-        median_filter_impl_1d<T,uint16_t,2048>(x, hx, in, out);
-        break;
-    case 4096:
-        median_filter_impl_1d<T,uint16_t,4096>(x, hx, in, out);
-        break;
-    default:
-        throw std::invalid_argument("unsupported block size");
+    if (blocksize <= 256) {
+        median_filter_impl_1d<T,uint8_t>(x, hx, blocksize, in, out);
+    } else if (blocksize <= 65536) {
+        median_filter_impl_1d<T,uint16_t>(x, hx, blocksize, in, out);
+    } else {
+        median_filter_impl_1d<T,int>(x, hx, blocksize, in, out);
     }
 }
 

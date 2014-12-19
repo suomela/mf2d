@@ -10,15 +10,20 @@
 //// Parameters for 1D and 2D filtering
 
 struct Param {
-    const int* block_sizes;
     int max_h;
     int benchmark_step;
+    double bf0;
+    double bf1;
 };
+const Param param1d = {1000, 10, 5.0, 11.0};
+const Param param2d = {100, 1, 3.0, 6.0};
 
-const int block_sizes_1d[] = {BLOCK_SIZES_1D, 0};
-const int block_sizes_2d[] = {BLOCK_SIZES_2D, 0};
-const Param param1d = {block_sizes_1d, MAX_H_1D, 10};
-const Param param2d = {block_sizes_2d, MAX_H_2D, 1};
+const int BSTEPS = 6;
+
+static double get_factor(const Param* param, int i) {
+    double ifract = static_cast<double>(i) / BSTEPS;
+    return param->bf0 + (param->bf1 - param->bf0) * ifract;
+}
 
 template <typename T>
 static const Param* get_param(const Driver<T,Image1D<T> > *tag) {
@@ -64,11 +69,6 @@ static void compare(T** prev, const T* cur, int size) {
 //// Method implementations
 
 template <typename T, typename I>
-int Driver<T,I>::max_h() {
-    return get_param(this)->max_h;
-}
-
-template <typename T, typename I>
 void Driver<T,I>::process(int h) {
     filter<T>(h, 0, in, out);
 }
@@ -88,19 +88,23 @@ void Driver<T,I>::write(const char* filename) {
 template <typename T, typename I>
 void Driver<T,I>::benchmark() {
     const Param* param = get_param(this);
-    for (int h = 0; h <= param->max_h; h += param->benchmark_step) {
+    for (int i = 0; i <= BSTEPS; ++i) {
+        double bfactor = get_factor(param, i);
+        std::cout << "\t" << bfactor;
+    }
+    std::cout << std::endl;
+    for (int h = 0; h <= param->max_h;
+         h += (h < param->benchmark_step) ? 1 : param->benchmark_step) {
         std::cout << h << std::flush;
         T* prev = 0;
-        for (const int* block = param->block_sizes; *block; ++block) {
-            if (*block < 2.5*h+1) {
-                std::cout << "\t-" << std::flush;
-            } else {
-                Timer timer;
-                filter<T>(h, *block, in, out);
-                double t = timer.peek();
-                std::cout << "\t" << t << std::flush;
-                compare<T>(&prev, out.p, out.size());
-            }
+        for (int i = 0; i <= BSTEPS; ++i) {
+            double bfactor = get_factor(param, i);
+            int blocksize = static_cast<int>(bfactor * (h + 2));
+            Timer timer;
+            filter<T>(h, blocksize, in, out);
+            double t = timer.peek();
+            std::cout << "\t" << t << std::flush;
+            compare<T>(&prev, out.p, out.size());
         }
         if (prev) {
             delete[] prev;

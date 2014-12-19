@@ -55,7 +55,6 @@ struct Image1D {
 
 class VDriver {
 public:
-    virtual int max_h() = 0;
     virtual void process(int h) = 0;
     virtual void diff() = 0;
     virtual void write(const char* filename) = 0;
@@ -80,7 +79,6 @@ public:
         delete out.p;
     }
 
-    int max_h();
     void process(int h);
     void diff();
     void write(const char* filename);

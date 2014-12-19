@@ -64,11 +64,15 @@ Some examples of typical running times on my Macbook Air laptop
 
   - less than 0.4s in total:
 
-        bin/mf2d 40 example/test-1.fits '!a.fits' '!b.fits'
+        bin/mf2d 30 example/test-1.fits '!a.fits' '!b.fits'
 
   - less than 0.7s in total:
 
         bin/mf2d 80 example/test-1.fits '!a.fits' '!b.fits'
+
+  - approx. 1.0s in total:
+
+        bin/mf2d 120 example/test-1.fits '!a.fits' '!b.fits'
 
 The sample file is 1024x1024 pixels, 32-bit floats.
 
@@ -98,12 +102,6 @@ cases we will output the average of the two middle values.
 
 
 ### Limits
-
-For 2D filtering, the maximum radius is currently 100
-(i.e., the maximum window size is 201x201).
-
-For 1D filtering, the maximum radius is currently 1000
-(i.e., the maximum window size is 2001).
 
 The maximum total image size is currently 2^31 pixels.
 

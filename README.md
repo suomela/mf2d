@@ -46,7 +46,11 @@ You can also filter just a small part of a large image:
 
 ### As a subroutine
 
-You will only need filter.cc and filter.h.
+You can use this software as a subroutine to filter 1-dimensional
+and 2-dimensional arrays of floating point values.
+
+You will only need filter.cc and filter.h; you do not need
+any additional libraries.
 
 See filter.h for the interface, and mf2d-unittest.cc for
 simple examples.

@@ -10,18 +10,27 @@
 
 struct Param {
     int max_h;
-    int benchmark_step;
     double bf0;
     double bf1;
 };
-const Param param1d = {1000, 10, 5.0, 11.0};
-const Param param2d = {100, 1, 3.0, 6.0};
+const Param param1d = {1000, 5.0, 11.0};
+const Param param2d = {100, 3.0, 6.0};
 
 const int BSTEPS = 6;
 
 static double get_factor(const Param* param, int i) {
     double ifract = static_cast<double>(i) / BSTEPS;
     return param->bf0 + (param->bf1 - param->bf0) * ifract;
+}
+
+static int benchmark_step(int h) {
+    if (h < 10) {
+        return h + 1;
+    } else if (h < 100) {
+        return h + 10;
+    } else {
+        return h + 100;
+    }
 }
 
 template <typename T>
@@ -92,8 +101,7 @@ void Driver<T,I>::benchmark() {
         std::cout << "\t" << bfactor;
     }
     std::cout << std::endl;
-    for (int h = 0; h <= param->max_h;
-         h += (h < param->benchmark_step) ? 1 : param->benchmark_step) {
+    for (int h = 0; h <= param->max_h; h = benchmark_step(h)) {
         std::cout << h << std::flush;
         T* prev = 0;
         for (int i = 0; i <= BSTEPS; ++i) {

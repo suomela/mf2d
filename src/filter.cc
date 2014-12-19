@@ -263,8 +263,8 @@ public:
         window.clear();
     }
 
-    inline void update(int op, int slot) {
-        int s = rank[slot];
+    inline void update(int op, R slot) {
+        R s = rank[slot];
         if (s != nanmarker) {
             window.update(op, s);
         }

@@ -4,6 +4,7 @@
 Alpha version, bugs are possible, use at your own risk.
 
 
+
 Usage
 -----
 
@@ -77,6 +78,7 @@ Some examples of typical running times on my Macbook Air laptop
 The sample file is 1024x1024 pixels, 32-bit floats.
 
 
+
 Details
 -------
 
@@ -103,27 +105,18 @@ cases we will output the average of the two middle values.
 
 ### Limits
 
-The maximum total image size is currently 2^31 pixels.
+The total image size has to be less than 2^31 pixels.
+
 
 
 Compiling
 ---------
 
+Install cfitsio first (see below for details).
+Then compile mf2d as follows, depending on your platform.
+
+
 ### Linux and GCC
-
-Install cfitsio first. You can download the source from
-http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html
-and compile and install it e.g. as follows:
-
-    ./configure --prefix=$HOME/opt
-    make
-    make install
-
-Then set the paths accordingly to that the compiler and linker
-can find it, e.g.:
-
-    export CPATH=$HOME/opt/include
-    export LIBRARY_PATH=$HOME/opt/lib
 
 Compile:
 
@@ -133,22 +126,23 @@ Test:
 
     test/test.sh
 
-See compile/gcc-*-linux.sh if you want to use a different version
-of GCC.
-
 
 ### Linux and ICC
 
-As above, but use the following command to compile:
+Compile:
 
-    compile/icc-linux.sh
+    compile/gcc-linux.sh
+
+Test:
+
+    test/test.sh
 
 
-### OS X and GCC from Homebrew
+### OS X and GCC
 
-If needed, install gcc 4.9 and cfitsio from Homebrew:
+You can get GCC 4.9 from Homebrew:
 
-    brew install gcc cfitsio
+    brew install gcc
 
 Compile:
 
@@ -159,13 +153,9 @@ Test:
     test/test.sh
 
 
-### OS X and clang from Xcode
+### OS X and Clang
 
 (Not recommended: slow, will not use OpenMP.)
-
-If needed, install cfitsio from Homebrew:
-
-    brew install cfitsio
 
 Compile:
 
@@ -174,6 +164,36 @@ Compile:
 Test:
 
     test/test.sh
+
+
+### Meson and Ninja
+
+See util/build-setup and util/build-all.
+
+
+
+Installing cfitsio
+------------------
+
+To compile the command-line tool, you will need cfitsio.
+On OS X, you can use Homebrew:
+
+    brew install cfitsio
+
+On Linux, you can download the source from
+http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html
+and compile and install it e.g. as follows:
+
+    ./configure --prefix=$HOME/opt
+    make
+    make install
+
+If you use a nonstandard location, set the paths accordingly
+so that the compiler and linker can find it:
+
+    export CPATH=$HOME/opt/include
+    export LIBRARY_PATH=$HOME/opt/lib
+
 
 
 Platforms and versions
@@ -196,6 +216,7 @@ Using the following libraries:
   - cfitsio 3.370
 
 
+
 License
 -------
 
@@ -205,6 +226,7 @@ You can distribute and use this software under the MIT license:
 http://opensource.org/licenses/MIT
 
 To contact the author, see http://users.ics.aalto.fi/suomela/
+
 
 
 Acknowledgements

@@ -81,19 +81,6 @@ public:
         half[i >= p] += op;
     }
 
-    inline void fix() {
-        while (half[0] >= half[1]) {
-            --p;
-            half[0] -= count[p];
-            half[1] += count[p];
-        }
-        while (half[0] + count[p] < half[1] - count[p]) {
-            half[0] += count[p];
-            half[1] -= count[p];
-            ++p;
-        }
-    }
-
     inline int size() const {
         return half[0] + half[1];
     }
@@ -107,7 +94,17 @@ public:
     }
 
     // Rounds down if even number of points
-    inline int med() const {
+    inline int med() {
+        while (half[0] >= half[1]) {
+            --p;
+            half[0] -= count[p];
+            half[1] += count[p];
+        }
+        while (half[0] + count[p] < half[1] - count[p]) {
+            half[0] += count[p];
+            half[1] -= count[p];
+            ++p;
+        }
         assert(half[0] < half[1]);
         int n = (half[1] - half[0] - 1) / 2;
         assert(n < count[p]);
@@ -130,7 +127,6 @@ private:
     // half[1] = count[p] + ... + count[words-1]
     int half[2];
     // The current guess is that the median is in buf[p].
-    // The guess is corrected by calling "fix".
     int p;
 };
 
@@ -278,12 +274,10 @@ public:
         if (window.empty()) {
             return std::numeric_limits<T>::quiet_NaN();
         } else {
-            window.fix();
             int med1 = window.med();
             T value = sorted[med1].first;
             if (window.even()) {
                 window.update(-1, med1);
-                window.fix();
                 assert(!window.even());
                 int med2 = window.med();
                 window.update(+1, med1);

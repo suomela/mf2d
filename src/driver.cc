@@ -4,7 +4,6 @@
 #include "driver.h"
 #include "filter.h"
 #include "imageio.h"
-#include "param.h"
 #include "timer.h"
 
 //// Parameters for 1D and 2D filtering

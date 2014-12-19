@@ -45,7 +45,7 @@ You can also filter just a small part of a large image:
 
 ### As a subroutine
 
-You will only need filter.cc, filter.h, and param.h.
+You will only need filter.cc and filter.h.
 
 See filter.h for the interface, and mf2d-unittest.cc for
 simple examples.

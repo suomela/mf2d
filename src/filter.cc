@@ -1,14 +1,24 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <stdint.h>
 #include <x86intrin.h>
-#include "param.h"
 
 const uint64_t ONE64 = 1;
+
+
+// Reasonable values based on benchmarks
+
+inline int choose_blocksize_1d(int h) {
+    return 8*(h + 2);
+}
+
+inline int choose_blocksize_2d(int h) {
+    return 4*(h + 2);
+}
+
 
 
 // Find nth bit that is set and return its index

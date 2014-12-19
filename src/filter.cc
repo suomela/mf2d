@@ -8,10 +8,6 @@
 #include <x86intrin.h>
 #include "param.h"
 
-// Bit manipulation
-
-const int MASK64 = 64-1;
-const int SHIFT64 = 6;
 const uint64_t ONE64 = 1;
 
 
@@ -32,9 +28,8 @@ inline int findnth64(uint64_t x, int n) {
 
 // Data structure for the sliding window.
 
-struct Window {
-    static const int WORDSIZE = 64;
-
+class Window {
+public:
     static inline int get_words(int bb) {
         assert(bb >= 1);
         return (bb + WORDSIZE - 1) / WORDSIZE;
@@ -111,11 +106,13 @@ struct Window {
     }
 
 private:
+    static const int WORDSIZE = 64;
+    static const int MASK64 = 64-1;
+    static const int SHIFT64 = 6;
+
+    // Size of buf & count.
     int words;
-    // A vector with 64*words bits that keeps track of the contents
-    // of the sliding window. The elements of the block are sorted
-    // and numbered with integers. Bit number s is on iff element
-    // s is inside the window.
+    // Bit number s is on iff element s is inside the window.
     uint64_t *buf;
     // count[i] = popcount(buf[i])
     int *count;
@@ -128,52 +125,10 @@ private:
 };
 
 
-struct Window1 {
-    inline void clear()
-    {
-        buf = 0;
-        count = 0;
-    }
-
-    inline void update(int op, int s) {
-        assert(op == -1 || op == +1);
-        if (op == +1) {
-            assert(!(buf & (ONE64 << s)));
-        } else {
-            assert(buf & (ONE64 << s));
-        }
-        buf ^= (ONE64 << s);
-        count += op;
-    }
-
-    inline void fix() {}
-
-    inline int size() const {
-        return count;
-    }
-
-    inline bool empty() const {
-        return size() == 0;
-    }
-
-    inline bool even() const {
-        return (size() & 1) == 0;
-    }
-
-    inline int med() const {
-        int n = (count - 1) / 2;
-        return findnth64(buf, n);
-    }
-
-private:
-    uint64_t buf;
-    int count;
-};
-
-
 // Grid dimensions.
 
-struct Dim {
+class Dim {
+public:
     Dim(int b_, int size_, int h_)
         : size(size_),
           h(h_),
@@ -257,7 +212,8 @@ struct BDim {
 
 
 template <typename T, typename R>
-struct WindowRank {
+class WindowRank {
+public:
     WindowRank(int bb_)
         : sorted(new std::pair<T,R>[bb_]),
           rank(new R[bb_]),
@@ -329,6 +285,7 @@ struct WindowRank {
         }
     }
 
+private:
     std::pair<T,R>* sorted;
     R* rank;
     Window window;

@@ -226,7 +226,7 @@ public:
           window(Window::get_words(bb_)),
           bb(bb_)
     {
-        assert(bb_ - 1 <= std::numeric_limits<R>::max());
+        assert(static_cast<unsigned>(bb_) < NAN_MARKER);
     }
 
     ~WindowRank()
@@ -236,16 +236,12 @@ public:
     }
 
     void init_start() {
-        // value not confused with any real index
-        nanmarker = -1;
         size = 0;
     }
 
     inline void init_feed(T value, R slot) {
         if (std::isnan(value)) {
-            // value that fits in type R
-            nanmarker = bb - 1;
-            rank[slot] = static_cast<R>(nanmarker);
+            rank[slot] = NAN_MARKER;
         } else {
             sorted[size] = std::make_pair(value, slot);
             ++size;
@@ -265,8 +261,8 @@ public:
 
     inline void update(int op, R slot) {
         R s = rank[slot];
-        if (s != nanmarker) {
-            window.update(op, s);
+        if (s != NAN_MARKER) {
+            window.update(op, static_cast<int>(s));
         }
     }
 
@@ -295,7 +291,7 @@ private:
     Window window;
     int bb;
     int size;
-    int nanmarker;
+    static const R NAN_MARKER = static_cast<R>(-1);
 };
 
 
@@ -522,24 +518,24 @@ template <typename T>
 void median_filter_2d(int x, int y, int hx, int hy, int blockhint, const T* in, T* out) {
     int h = std::max(hx, hy);
     int blocksize = blockhint ? blockhint : choose_blocksize_2d(h);
-    if (blocksize <= 16) {
+    if (blocksize < 16) {
         median_filter_impl_2d<T,uint8_t>(x, y, hx, hy, blocksize, in, out);
-    } else if (blocksize <= 256) {
+    } else if (blocksize < 256) {
         median_filter_impl_2d<T,uint16_t>(x, y, hx, hy, blocksize, in, out);
     } else {
-        median_filter_impl_2d<T,int>(x, y, hx, hy, blocksize, in, out);
+        median_filter_impl_2d<T,uint32_t>(x, y, hx, hy, blocksize, in, out);
     }
 }
 
 template <typename T>
 void median_filter_1d(int x, int hx, int blockhint, const T* in, T* out) {
     int blocksize = blockhint ? blockhint : choose_blocksize_1d(hx);
-    if (blocksize <= 256) {
+    if (blocksize < 256) {
         median_filter_impl_1d<T,uint8_t>(x, hx, blocksize, in, out);
-    } else if (blocksize <= 65536) {
+    } else if (blocksize < 65536) {
         median_filter_impl_1d<T,uint16_t>(x, hx, blocksize, in, out);
     } else {
-        median_filter_impl_1d<T,int>(x, hx, blocksize, in, out);
+        median_filter_impl_1d<T,uint32_t>(x, hx, blocksize, in, out);
     }
 }
 

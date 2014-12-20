@@ -69,13 +69,13 @@ Some examples of typical running times on my Macbook Air laptop
 
   - less than 0.4s in total:
 
-        bin/mf2d 30 example/test-1.fits '!a.fits' '!b.fits'
+        bin/mf2d 40 example/test-1.fits '!a.fits' '!b.fits'
 
-  - less than 0.7s in total:
+  - less than 0.6s in total:
 
         bin/mf2d 80 example/test-1.fits '!a.fits' '!b.fits'
 
-  - approx. 1.0s in total:
+  - less than 0.8s in total:
 
         bin/mf2d 120 example/test-1.fits '!a.fits' '!b.fits'
 

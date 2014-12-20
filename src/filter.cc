@@ -35,6 +35,10 @@ inline int findnth64(uint64_t x, int n) {
     return __builtin_ctzll(x);
 }
 
+inline int popcnt64(uint64_t x) {
+    return __builtin_popcountll(x);
+}
+
 
 // Data structure for the sliding window.
 
@@ -47,20 +51,17 @@ public:
 
     Window(int words_)
         : words(words_),
-          buf(new uint64_t[words_]),
-          count(new int[words_])
+          buf(new uint64_t[words_])
     {}
 
     ~Window() {
         delete[] buf;
-        delete[] count;
     }
 
     inline void clear()
     {
         for (int i = 0; i < words; ++i) {
             buf[i] = 0;
-            count[i] = 0;
         }
         half[0] = 0;
         half[1] = 0;
@@ -77,7 +78,6 @@ public:
             assert(buf[i] & (ONE64 << j));
         }
         buf[i] ^= (ONE64 << j);
-        count[i] += op;
         half[i >= p] += op;
     }
 
@@ -97,17 +97,17 @@ public:
     inline int med() {
         while (half[0] >= half[1]) {
             --p;
-            half[0] -= count[p];
-            half[1] += count[p];
+            half[0] -= popcnt64(buf[p]);
+            half[1] += popcnt64(buf[p]);
         }
-        while (half[0] + count[p] < half[1] - count[p]) {
-            half[0] += count[p];
-            half[1] -= count[p];
+        while (half[0] + popcnt64(buf[p]) < half[1] - popcnt64(buf[p])) {
+            half[0] += popcnt64(buf[p]);
+            half[1] -= popcnt64(buf[p]);
             ++p;
         }
         assert(half[0] < half[1]);
         int n = (half[1] - half[0] - 1) / 2;
-        assert(n < count[p]);
+        assert(n < popcnt64(buf[p]));
         int j = findnth64(buf[p], n);
         return (p << SHIFT64) | j;
     }
@@ -117,14 +117,12 @@ private:
     static const int MASK64 = 64-1;
     static const int SHIFT64 = 6;
 
-    // Size of buf & count.
+    // Size of buf.
     int words;
     // Bit number s is on iff element s is inside the window.
     uint64_t *buf;
-    // count[i] = popcount(buf[i])
-    int *count;
-    // half[0] = count[0] + ... + count[p-1]
-    // half[1] = count[p] + ... + count[words-1]
+    // half[0] = popcount of buf[0] ... buf[p-1]
+    // half[1] = popcount of buf[p] ... buf[words-1]
     int half[2];
     // The current guess is that the median is in buf[p].
     int p;

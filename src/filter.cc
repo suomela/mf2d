@@ -40,6 +40,92 @@ inline int popcnt64(uint64_t x) {
 }
 
 
+// Grid dimensions.
+
+class Dim {
+public:
+    Dim(int b_, int size_, int h_)
+        : size(size_),
+          h(h_),
+          step(calc_step(b_, h_)),
+          count(calc_count(b_, size_, h_))
+    {
+        assert(2 * h + 1 < b_);
+        assert(count >= 1);
+        assert(2 * h + count * step >= size);
+        assert(2 * h + (count - 1) * step < size || count == 1);
+    }
+
+    const int size;
+    const int h;
+    const int step;
+    const int count;
+
+private:
+    inline static int calc_step(int b, int h) {
+        return b - 2*h;
+    }
+
+    inline static int calc_count(int b, int size, int h) {
+        if (size <= b) {
+            return 1;
+        } else {
+            int interior = size - 2 * h;
+            int step = calc_step(b, h);
+            return (interior + step - 1) / step;
+        }
+    }
+};
+
+
+// Slot i in the grid.
+
+struct BDim {
+    BDim(Dim dim_) : dim(dim_) {
+        set(0);
+    }
+
+    inline void set(int i) {
+        bool is_first = (i == 0);
+        bool is_last = (i + 1 == dim.count);
+        start = dim.step * i;
+        int end;
+        if (is_last) {
+            end = dim.size;
+        } else {
+            end = 2 * dim.h + (i + 1) * dim.step;
+        }
+        size = end - start;
+        b0 = is_first ? 0 : dim.h;
+        b1 = is_last ? size : size - dim.h;
+    }
+
+    // The window around point v is [w0(v), w1(v)).
+    // 0 <= w0(v) <= v < w1(v) <= size
+    inline int w0(int v) const {
+        assert(b0 <= v);
+        assert(v < b1);
+        return std::max(0, v - dim.h);
+    }
+
+    inline int w1(int v) const {
+        assert(b0 <= v);
+        assert(v < b1);
+        return std::min(v + 1 + dim.h, size);
+    }
+
+    // Block i is located at coordinates [start, end) in the image.
+    // Within the block, median is needed for coordinates [b0, b1).
+    // 0 <= start < end < dim.size
+    // 0 <= b0 < b1 < size <= dim.b
+    const Dim dim;
+    int start;
+    int size;
+    int b0;
+    int b1;
+};
+
+
 // Data structure for the sliding window.
 
 class Window {
@@ -126,92 +212,6 @@ private:
     int half[2];
     // The current guess is that the median is in buf[p].
     int p;
-};
-
-
-// Grid dimensions.
-
-class Dim {
-public:
-    Dim(int b_, int size_, int h_)
-        : size(size_),
-          h(h_),
-          step(calc_step(b_, h_)),
-          count(calc_count(b_, size_, h_))
-    {
-        assert(2 * h + 1 < b_);
-        assert(count >= 1);
-        assert(2 * h + count * step >= size);
-        assert(2 * h + (count - 1) * step < size || count == 1);
-    }
-
-    const int size;
-    const int h;
-    const int step;
-    const int count;
-
-private:
-    inline static int calc_step(int b, int h) {
-        return b - 2*h;
-    }
-
-    inline static int calc_count(int b, int size, int h) {
-        if (size <= b) {
-            return 1;
-        } else {
-            int interior = size - 2 * h;
-            int step = calc_step(b, h);
-            return (interior + step - 1) / step;
-        }
-    }
-};
-
-
-// Slot i in the grid.
-
-struct BDim {
-    BDim(Dim dim_) : dim(dim_) {
-        set(0);
-    }
-
-    inline void set(int i) {
-        bool is_first = (i == 0);
-        bool is_last = (i + 1 == dim.count);
-        start = dim.step * i;
-        int end;
-        if (is_last) {
-            end = dim.size;
-        } else {
-            end = 2 * dim.h + (i + 1) * dim.step;
-        }
-        size = end - start;
-        b0 = is_first ? 0 : dim.h;
-        b1 = is_last ? size : size - dim.h;
-    }
-
-    // The window around point v is [w0(v), w1(v)).
-    // 0 <= w0(v) <= v < w1(v) <= size
-    inline int w0(int v) const {
-        assert(b0 <= v);
-        assert(v < b1);
-        return std::max(0, v - dim.h);
-    }
-
-    inline int w1(int v) const {
-        assert(b0 <= v);
-        assert(v < b1);
-        return std::min(v + 1 + dim.h, size);
-    }
-
-    // Block i is located at coordinates [start, end) in the image.
-    // Within the block, median is needed for coordinates [b0, b1).
-    // 0 <= start < end < dim.size
-    // 0 <= b0 < b1 < size <= dim.b
-    const Dim dim;
-    int start;
-    int size;
-    int b0;
-    int b1;
 };
 
 

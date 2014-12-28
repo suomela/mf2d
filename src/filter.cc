@@ -44,14 +44,9 @@ inline int popcnt64(uint64_t x) {
 
 class Window {
 public:
-    static inline int get_words(int bb) {
-        assert(bb >= 1);
-        return (bb + WORDSIZE - 1) / WORDSIZE;
-    }
-
-    Window(int words_)
-        : words(words_),
-          buf(new uint64_t[words_])
+    Window(int bb)
+        : words(get_words(bb)),
+          buf(new uint64_t[words])
     {}
 
     ~Window() {
@@ -113,6 +108,11 @@ public:
     }
 
 private:
+    static inline int get_words(int bb) {
+        assert(bb >= 1);
+        return (bb + WORDSIZE - 1) / WORDSIZE;
+    }
+
     static const int WORDSIZE = 64;
     static const int MASK64 = 64-1;
     static const int SHIFT64 = 6;
@@ -221,7 +221,7 @@ public:
     WindowRank(int bb_)
         : sorted(new std::pair<T,R>[bb_]),
           rank(new R[bb_]),
-          window(Window::get_words(bb_)),
+          window(bb_),
           bb(bb_)
     {
         assert(static_cast<unsigned>(bb_) < NAN_MARKER);

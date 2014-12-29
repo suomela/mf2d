@@ -194,9 +194,9 @@ private:
     static const int WORD_MASK = WORD_SIZE - 1;
 
     // Size of buf.
-    int words;
+    const int words;
     // Bit number s is on iff element s is inside the window.
-    uint64_t *buf;
+    uint64_t * const buf;
     // half[0] = popcount of buf[0] ... buf[p-1]
     // half[1] = popcount of buf[p] ... buf[words-1]
     int half[2];
@@ -274,10 +274,10 @@ public:
     }
 
 private:
-    std::pair<T,R>* sorted;
-    R* rank;
+    std::pair<T,R>* const sorted;
+    R* const rank;
     Window window;
-    int bb;
+    const int bb;
     int size;
     static const R NAN_MARKER = static_cast<R>(-1);
 };

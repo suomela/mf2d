@@ -151,8 +151,8 @@ public:
 
     inline void update(int op, int s) {
         assert(op == -1 || op == +1);
-        int i = s >> SHIFT64;
-        int j = s & MASK64;
+        int i = s >> WORD_SHIFT;
+        int j = s & WORD_MASK;
         if (op == +1) {
             assert(!(buf[i] & (ONE64 << j)));
         } else {
@@ -180,18 +180,18 @@ public:
         int n = goal - half[0];
         assert(0 <= n && n < popcnt64(buf[p]));
         int j = findnth64(buf[p], n);
-        return (p << SHIFT64) | j;
+        return (p << WORD_SHIFT) | j;
     }
 
 private:
     static inline int get_words(int bb) {
         assert(bb >= 1);
-        return (bb + WORDSIZE - 1) / WORDSIZE;
+        return (bb + WORD_SIZE - 1) / WORD_SIZE;
     }
 
-    static const int WORDSIZE = 64;
-    static const int MASK64 = 64-1;
-    static const int SHIFT64 = 6;
+    static const int WORD_SHIFT = 6;
+    static const int WORD_SIZE = 1 << WORD_SHIFT;
+    static const int WORD_MASK = WORD_SIZE - 1;
 
     // Size of buf.
     int words;

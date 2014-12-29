@@ -166,28 +166,19 @@ public:
         return half[0] + half[1];
     }
 
-    inline bool empty() const {
-        return size() == 0;
-    }
-
-    inline bool even() const {
-        return (size() & 1) == 0;
-    }
-
-    // Rounds down if even number of points
-    inline int med() {
-        while (half[0] >= half[1]) {
+    inline int find(int goal) {
+        while (half[0] > goal) {
             --p;
             half[0] -= popcnt64(buf[p]);
             half[1] += popcnt64(buf[p]);
         }
-        while (half[0] + popcnt64(buf[p]) < half[1] - popcnt64(buf[p])) {
+        while (half[0] + popcnt64(buf[p]) <= goal) {
             half[0] += popcnt64(buf[p]);
             half[1] -= popcnt64(buf[p]);
             ++p;
         }
         assert(half[0] < half[1]);
-        int n = (half[1] - half[0] - 1) / 2;
+        int n = goal - half[0];
         assert(n < popcnt64(buf[p]));
         int j = findnth64(buf[p], n);
         return (p << SHIFT64) | j;
@@ -265,16 +256,16 @@ public:
     }
 
     inline T get_med() {
-        if (window.empty()) {
+        int total = window.size();
+        if (total == 0) {
             return std::numeric_limits<T>::quiet_NaN();
         } else {
-            int med1 = window.med();
+            int goal1 = (total - 1) / 2;
+            int goal2 = (total - 0) / 2;
+            int med1 = window.find(goal1);
             T value = sorted[med1].first;
-            if (window.even()) {
-                window.update(-1, med1);
-                assert(!window.even());
-                int med2 = window.med();
-                window.update(+1, med1);
+            if (goal2 != goal1) {
+                int med2 = window.find(goal2);
                 assert(med2 > med1);
                 value += sorted[med2].first;
                 value /= 2;

@@ -177,9 +177,8 @@ public:
             half[1] -= popcnt64(buf[p]);
             ++p;
         }
-        assert(half[0] < half[1]);
         int n = goal - half[0];
-        assert(n < popcnt64(buf[p]));
+        assert(0 <= n && n < popcnt64(buf[p]));
         int j = findnth64(buf[p], n);
         return (p << SHIFT64) | j;
     }

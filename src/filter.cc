@@ -205,17 +205,15 @@ private:
 };
 
 
-template <typename T, typename R>
+template <typename T>
 class WindowRank {
 public:
     WindowRank(int bb_)
-        : sorted(new std::pair<T,R>[bb_]),
-          rank(new R[bb_]),
+        : sorted(new std::pair<T,int>[bb_]),
+          rank(new int[bb_]),
           window(bb_),
           bb(bb_)
-    {
-        assert(static_cast<unsigned>(bb_) < NAN_MARKER);
-    }
+    {}
 
     ~WindowRank()
     {
@@ -227,7 +225,7 @@ public:
         size = 0;
     }
 
-    inline void init_feed(T value, R slot) {
+    inline void init_feed(T value, int slot) {
         if (std::isnan(value)) {
             rank[slot] = NAN_MARKER;
         } else {
@@ -239,7 +237,7 @@ public:
     void init_finish() {
         std::sort(sorted, sorted + size);
         for (int i = 0; i < size; ++i) {
-            rank[sorted[i].second] = static_cast<R>(i);
+            rank[sorted[i].second] = i;
         }
     }
 
@@ -247,10 +245,10 @@ public:
         window.clear();
     }
 
-    inline void update(int op, R slot) {
-        R s = rank[slot];
+    inline void update(int op, int slot) {
+        int s = rank[slot];
         if (s != NAN_MARKER) {
-            window.update(op, static_cast<int>(s));
+            window.update(op, s);
         }
     }
 
@@ -274,18 +272,18 @@ public:
     }
 
 private:
-    std::pair<T,R>* const sorted;
-    R* const rank;
+    std::pair<T,int>* const sorted;
+    int* const rank;
     Window window;
     const int bb;
     int size;
-    static const R NAN_MARKER = static_cast<R>(-1);
+    static const int NAN_MARKER = -1;
 };
 
 
 // MedCalc2D.run(i,j) calculates medians for block (i,j).
 
-template <typename T, typename R>
+template <typename T>
 class MedCalc2D {
 public:
     MedCalc2D(int b_, Dim dimx_, Dim dimy_, const T* in_, T* out_)
@@ -375,15 +373,15 @@ private:
         out[coord(x, y)] = wr.get_med();
     }
 
-    inline R pack(int x, int y) const {
-        return static_cast<R>(y * bx.size + x);
+    inline int pack(int x, int y) const {
+        return y * bx.size + x;
     }
 
     inline int coord(int x, int y) const {
         return (y + by.start) * bx.dim.size + (x + bx.start);
     }
 
-    WindowRank<T,R> wr;
+    WindowRank<T> wr;
     BDim bx;
     BDim by;
     const T* const in;
@@ -392,7 +390,7 @@ private:
 
 
 
-template <typename T, typename R>
+template <typename T>
 class MedCalc1D {
 public:
     MedCalc1D(int b_, Dim dimx_, const T* in_, T* out_)
@@ -450,22 +448,22 @@ private:
         out[coord(x)] = wr.get_med();
     }
 
-    inline R pack(int x) const {
-        return static_cast<R>(x);
+    inline int pack(int x) const {
+        return x;
     }
 
     inline int coord(int x) const {
         return x + bx.start;
     }
 
-    WindowRank<T,R> wr;
+    WindowRank<T> wr;
     BDim bx;
     const T* const in;
     T* const out;
 };
 
 
-template <typename T, typename R>
+template <typename T>
 void median_filter_impl_2d(int x, int y, int hx, int hy, int b, const T* in, T* out) {
     if (2 * hx + 1 > b || 2 * hy + 1 > b) {
         throw std::invalid_argument("window too large for this block size");
@@ -474,7 +472,7 @@ void median_filter_impl_2d(int x, int y, int hx, int hy, int b, const T* in, T* 
     Dim dimy(b, y, hy);
     #pragma omp parallel
     {
-        MedCalc2D<T,R> mc(b, dimx, dimy, in, out);
+        MedCalc2D<T> mc(b, dimx, dimy, in, out);
         #pragma omp for collapse(2)
         for (int by = 0; by < dimy.count; ++by) {
             for (int bx = 0; bx < dimx.count; ++bx) {
@@ -485,7 +483,7 @@ void median_filter_impl_2d(int x, int y, int hx, int hy, int b, const T* in, T* 
 }
 
 
-template <typename T, typename R>
+template <typename T>
 void median_filter_impl_1d(int x, int hx, int b, const T* in, T* out) {
     if (2 * hx + 1 > b) {
         throw std::invalid_argument("window too large for this block size");
@@ -493,7 +491,7 @@ void median_filter_impl_1d(int x, int hx, int b, const T* in, T* out) {
     Dim dimx(b, x, hx);
     #pragma omp parallel
     {
-        MedCalc1D<T,R> mc(b, dimx, in, out);
+        MedCalc1D<T> mc(b, dimx, in, out);
         #pragma omp for
         for (int bx = 0; bx < dimx.count; ++bx) {
             mc.run(bx);
@@ -506,25 +504,13 @@ template <typename T>
 void median_filter_2d(int x, int y, int hx, int hy, int blockhint, const T* in, T* out) {
     int h = std::max(hx, hy);
     int blocksize = blockhint ? blockhint : choose_blocksize_2d(h);
-    if (blocksize < 16) {
-        median_filter_impl_2d<T,uint8_t>(x, y, hx, hy, blocksize, in, out);
-    } else if (blocksize < 256) {
-        median_filter_impl_2d<T,uint16_t>(x, y, hx, hy, blocksize, in, out);
-    } else {
-        median_filter_impl_2d<T,uint32_t>(x, y, hx, hy, blocksize, in, out);
-    }
+    median_filter_impl_2d<T>(x, y, hx, hy, blocksize, in, out);
 }
 
 template <typename T>
 void median_filter_1d(int x, int hx, int blockhint, const T* in, T* out) {
     int blocksize = blockhint ? blockhint : choose_blocksize_1d(hx);
-    if (blocksize < 256) {
-        median_filter_impl_1d<T,uint8_t>(x, hx, blocksize, in, out);
-    } else if (blocksize < 65536) {
-        median_filter_impl_1d<T,uint16_t>(x, hx, blocksize, in, out);
-    } else {
-        median_filter_impl_1d<T,uint32_t>(x, hx, blocksize, in, out);
-    }
+    median_filter_impl_1d<T>(x, hx, blocksize, in, out);
 }
 
 template void median_filter_2d<float>(int x, int y, int hx, int hy, int blockhint, const float* in, float* out);

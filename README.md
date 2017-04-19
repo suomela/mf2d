@@ -188,7 +188,11 @@ On OS X, you can use Homebrew:
 
     brew install cfitsio
 
-On Linux, you can download the source from
+On Ubuntu Linux, you can try:
+
+    apt-get install libcfitsio3-dev
+
+Alternatively, you can download the source from
 http://heasarc.gsfc.nasa.gov/fitsio/fitsio.html
 and compile and install it e.g. as follows:
 

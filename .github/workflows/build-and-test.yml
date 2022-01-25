@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Update packages
+      run: sudo apt-get update -y
     - name: Install packages
       run: sudo apt-get install -y libcfitsio-dev
     - name: Build

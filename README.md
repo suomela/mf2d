@@ -8,7 +8,7 @@ Alpha version, bugs are possible, use at your own risk.
 News
 ----
 
-- **May 2023:** C# port by Frank Hileman available here: https://github.com/FrankHileman/MedianFilter2D
+- **March 2023:** C# port by Frank Hileman available here: https://github.com/FrankHileman/MedianFilter2D
 
 
 
